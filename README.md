@@ -6,6 +6,7 @@ A web application for organizing board game nights with a group of 8–12 player
 
 ## 📋 Table of Contents
 
+- [Screenshots](#-screenshots)
 - [Tech Stack](#-tech-stack)
 - [Features](#-features)
 - [How It Works](#-how-it-works)
@@ -15,6 +16,19 @@ A web application for organizing board game nights with a group of 8–12 player
 - [Admin Features](#-admin-features)
 - [Database Schema (PostgreSQL)](#-database-schema-postgresql)
 - [Google Sheets Integration (Planned)](#-google-sheets-integration-planned)
+
+---
+
+## 📸 Screenshots
+
+### 🗳️ Vote Page
+![Vote](screenshoot1.png)
+
+### 📊 Results Page
+![Results](screenshoot2.png)
+
+### ⚙️ Admin Dashboard
+![Admin](screenshoot3.png)
 
 ---
 
