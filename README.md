@@ -159,6 +159,10 @@ Import your game catalog directly from a Google Sheet instead of manually adding
 
 ---
 
+> 📌 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the full development roadmap.
+
+---
+
 ## 🚀 Getting Started
 
 ```bash
