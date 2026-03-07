@@ -1,0 +1,29 @@
+# Optional: for external access. Requires an Ingress controller (nginx, traefik, etc.)
+# and may need adjustment for your cluster (e.g. ingressClassName, annotations).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cal-ingress
+  namespace: cal
+  annotations:
+    # Uncomment and adjust for your ingress controller:
+    # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx  # Change if using different controller
+  rules:
+    - host: cal.example.com  # Replace with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cal-app
+                port:
+                  number: 8501
+  # Uncomment for TLS:
+  # tls:
+  #   - hosts:
+  #       - cal.example.com
+  #     secretName: cal-tls

@@ -1,0 +1,54 @@
+# Replace image with your pushed image (from 3.1)
+# e.g. ghcr.io/your-org/cal:latest or gcr.io/project/cal:latest
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cal-app
+  namespace: cal
+  labels:
+    app: cal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cal
+  template:
+    metadata:
+      labels:
+        app: cal
+    spec:
+      containers:
+        - name: app
+          image: your-registry/cal:latest  # Replace after pushing image (3.1)
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8501
+              name: http
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cal-db-secret
+                  key: DATABASE_URL
+          envFrom:
+            - configMapRef:
+                name: cal-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8501
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8501
+            initialDelaySeconds: 10
+            periodSeconds: 5

@@ -213,42 +213,21 @@ cal/
 
 **Goal:** Production-ready deployment on Kubernetes.
 
-### 3.1 — Container Registry
+### 3.1 — Kubernetes Manifests
 
-- [ ] Build and tag Docker image
-- [ ] Push to container registry (Google Container Registry, Docker Hub, or GitHub Container Registry)
-
-### 3.2 — Kubernetes Manifests
-
-- [ ] Create `k8s/` directory with:
+- [x] Create `k8s/` directory with:
   - `namespace.yaml` — dedicated namespace
   - `deployment.yaml` — Streamlit app deployment
   - `service.yaml` — ClusterIP or LoadBalancer service
   - `configmap.yaml` — non-sensitive configuration
-  - `secret.yaml` — database credentials
+  - `secret.yaml` — database credentials (external DB URL)
   - `ingress.yaml` — external access (optional, depends on setup)
 
-### 3.3 — PostgreSQL on Kubernetes
+### 3.2 — PostgreSQL on Kubernetes
 
 - [ ] Option A: **StatefulSet** — run PostgreSQL in K8s with persistent volume
 - [ ] Option B: **Managed database** — use Cloud SQL (GCP) or RDS (AWS) for production reliability
-- [ ] Decision: start with StatefulSet for simplicity, migrate to managed DB if needed
-
-### 3.4 — Infrastructure as Code (Terraform)
-
-- [ ] Terraform configuration for:
-  - GKE cluster (or equivalent)
-  - VPC / networking
-  - Container registry
-  - Cloud SQL (if using managed DB)
-- [ ] Store Terraform state remotely (GCS bucket)
-
-### 3.5 — Deployment & Verification
-
-- [ ] Apply K8s manifests: `kubectl apply -f k8s/`
-- [ ] Verify pods running, service accessible
-- [ ] Run database migrations in the cluster
-- [ ] Test end-to-end flow
+- [x] Option C: **External database** — use existing PostgreSQL (Cloud SQL, RDS, self-hosted, etc.); provide `DATABASE_URL` and credentials via K8s Secret; no DB in cluster
 
 ---
 
@@ -292,7 +271,7 @@ These are planned features to be implemented after the core app is stable.
 |-----------|--------|
 | 1. Local Python App | ✅ Done |
 | 2. Dockerize | ✅ Done |
-| 3. Kubernetes | ⏳ Waiting |
+| 3. Kubernetes | ✅ Done |
 | 4. Enhancements | ⏳ Waiting |
 
 ---

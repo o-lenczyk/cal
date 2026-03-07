@@ -212,6 +212,18 @@ alembic upgrade head
 streamlit run app.py
 ```
 
+### Build & Push (for Kubernetes / registry)
+
+```bash
+# Build the image
+docker build -t your-registry/cal:latest .
+
+# Push to your registry (login first if needed: docker login)
+docker push your-registry/cal:latest
+```
+
+Replace `your-registry` with your registry (e.g. `ghcr.io/your-org`, `gcr.io/your-project`, `docker.io/your-user`).
+
 ---
 
 ## 📄 License
