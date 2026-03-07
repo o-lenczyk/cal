@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from db.models import User, Preference, TableInstance, Game
+from db.models import User, Preference, TableInstance, Game, Table
 
 
 def assign_players(session: Session) -> dict:
@@ -50,11 +50,12 @@ def assign_players(session: Session) -> dict:
             if not game or not game.is_selected:
                 continue
 
-            # Get table instances for this game, sorted by table number
+            # Get table instances for this game, sorted by physical table order
             tables = (
                 session.query(TableInstance)
                 .filter(TableInstance.game_id == game.id)
-                .order_by(TableInstance.table_number.asc())
+                .join(TableInstance.table)
+                .order_by(Table.sort_order.asc())
                 .all()
             )
 
@@ -66,7 +67,8 @@ def assign_players(session: Session) -> dict:
                     .count()
                 )
 
-                if current_count < game.max_players:
+                effective_capacity = min(table.table.capacity, game.max_players)
+                if current_count < effective_capacity:
                     user.assigned_table_id = table.id
                     session.flush()
                     assigned.append((user, table))
@@ -96,9 +98,10 @@ def get_available_tables(session: Session) -> list[dict]:
     """
     tables = (
         session.query(TableInstance)
-        .join(Game)
+        .join(TableInstance.game)
+        .join(TableInstance.table)
         .filter(Game.is_selected == True)
-        .order_by(Game.title, TableInstance.table_number)
+        .order_by(Table.sort_order)
         .all()
     )
 
@@ -109,7 +112,8 @@ def get_available_tables(session: Session) -> list[dict]:
             .filter(User.assigned_table_id == table.id)
             .count()
         )
-        open_seats = table.game.max_players - current_count
+        capacity = min(table.table.capacity, table.game.max_players)
+        open_seats = capacity - current_count
 
         if open_seats > 0:
             available.append({
@@ -140,7 +144,8 @@ def manually_assign_player(session: Session, user_id: int, table_id: int) -> boo
         .count()
     )
 
-    if current_count >= table.game.max_players:
+    effective_capacity = min(table.table.capacity, table.game.max_players)
+    if current_count >= effective_capacity:
         return False
 
     user.assigned_table_id = table.id

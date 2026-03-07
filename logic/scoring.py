@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from db.models import Game, Preference, TableInstance
+from db.models import Game, Preference, TableInstance, Table
 
 
 def calculate_scores(session: Session) -> list[dict]:
@@ -45,7 +45,7 @@ def select_games(session: Session, min_score: int = 1) -> list[Game]:
     Select games that meet the minimum score threshold and have enough
     interested players to meet their min_players requirement.
     
-    Creates initial table instances for selected games.
+    Automatically assigns selected games to physical tables (top games to first tables).
     
     Returns list of selected games.
     """
@@ -60,18 +60,28 @@ def select_games(session: Session, min_score: int = 1) -> list[Game]:
         if score >= min_score and voter_count >= game.min_players:
             game.is_selected = True
             selected.append(game)
-
-            # Create at least one table instance if none exists
-            existing_tables = (
-                session.query(TableInstance)
-                .filter(TableInstance.game_id == game.id)
-                .count()
-            )
-            if existing_tables == 0:
-                table = TableInstance(game_id=game.id, table_number=1)
-                session.add(table)
         else:
             game.is_selected = False
+
+    # Assign selected games to physical tables (1st game → 1st table, etc.)
+    physical_tables = session.query(Table).order_by(Table.sort_order).all()
+    existing = {ti.table_id: ti for ti in session.query(TableInstance).all()}
+
+    for i in range(min(len(selected), len(physical_tables))):
+        tbl = physical_tables[i]
+        game = selected[i]
+        ti = existing.get(tbl.id)
+        if ti:
+            ti.game_id = game.id
+        else:
+            session.add(TableInstance(table_id=tbl.id, game_id=game.id))
+
+    # Clear tables that no longer have a game (fewer selected games than tables)
+    for i in range(len(selected), len(physical_tables)):
+        tbl = physical_tables[i]
+        ti = existing.get(tbl.id)
+        if ti:
+            session.delete(ti)
 
     session.commit()
     return selected

@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from db.database import get_db
-from db.models import Game, User, Preference, TableInstance
+from db.models import Game, User, Preference, TableInstance, Table
 from logic.scoring import calculate_scores
 from logic.assignment import get_available_tables
 from ui.theme_toggle import render_theme_toggle
@@ -46,37 +46,38 @@ st.subheader("🪑 Table Assignments")
 
 selected_games = session.query(Game).filter(Game.is_selected == True).order_by(Game.title).all()
 
-if selected_games:
-    for game in selected_games:
-        tables = (
-            session.query(TableInstance)
-            .filter(TableInstance.game_id == game.id)
-            .order_by(TableInstance.table_number)
+# Show by physical table (TableInstance links table + game)
+table_instances = (
+    session.query(TableInstance)
+    .join(TableInstance.game)
+    .join(TableInstance.table)
+    .filter(Game.is_selected == True)
+    .order_by(Table.sort_order)
+    .all()
+)
+
+if table_instances:
+    for ti in table_instances:
+        assigned_users = (
+            session.query(User)
+            .filter(User.assigned_table_id == ti.id)
+            .order_by(User.name)
             .all()
         )
+        current = len(assigned_users)
+        max_p = min(ti.table.capacity, ti.game.max_players)
 
-        for table in tables:
-            assigned_users = (
-                session.query(User)
-                .filter(User.assigned_table_id == table.id)
-                .order_by(User.name)
-                .all()
-            )
-
-            current = len(assigned_users)
-            max_p = game.max_players
-
-            with st.expander(
-                f"🎲 {game.title} — Table {table.table_number} ({current}/{max_p} players)",
-                expanded=True,
-            ):
+        with st.expander(
+            f"🎲 {ti.game.title} — {ti.table.name} ({current}/{max_p} players)",
+            expanded=True,
+        ):
                 if assigned_users:
                     for u in assigned_users:
                         st.text(f"  👤 {u.name}")
                 else:
                     st.text("  (no players assigned yet)")
 else:
-    st.info("No games have been selected yet. An admin needs to run the scoring algorithm first.")
+    st.info("No tables with games assigned yet. An admin needs to run scoring and assign games to tables.")
 
 # --- Unassigned Players ---
 st.markdown("---")
@@ -117,7 +118,7 @@ if unassigned_with_votes:
 
         # Select table
         table_options = [
-            f"{t['game'].title} — Table {t['table'].table_number} ({t['current_count']}/{t['game'].max_players}, {t['open_seats']} open)"
+            f"{t['game'].title} — {t['table'].table.name} ({t['current_count']}/{min(t['table'].table.capacity, t['game'].max_players)}, {t['open_seats']} open)"
             for t in available
         ]
         selected_table_label = st.selectbox("Select a table:", options=[""] + table_options)
@@ -134,7 +135,7 @@ if unassigned_with_votes:
                     from logic.assignment import manually_assign_player
                     success = manually_assign_player(session, user.id, table_info["table"].id)
                     if success:
-                        st.success(f"✅ {user.name} assigned to {table_info['game'].title} — Table {table_info['table'].table_number}!")
+                        st.success(f"✅ {user.name} assigned to {table_info['game'].title} — {table_info['table'].table.name}!")
                         st.rerun()
                     else:
                         st.error("❌ Table is full. Please choose another.")

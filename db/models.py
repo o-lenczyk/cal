@@ -32,31 +32,53 @@ class Game(Base):
         return f"<Game(id={self.id}, title='{self.title}', players={self.min_players}-{self.max_players})>"
 
 
+class Table(Base):
+    """Physical table in the playroom (fixed furniture)."""
+
+    __tablename__ = "tables"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False)
+    capacity = Column(Integer, nullable=False)  # seats (e.g. 4 or 6)
+    sort_order = Column(Integer, nullable=False, default=0)
+
+    # Relationships
+    table_instances = relationship("TableInstance", back_populates="table", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Table(id={self.id}, name='{self.name}', capacity={self.capacity})>"
+
+
 class TableInstance(Base):
+    """Links a physical table to a game (this table is playing this game)."""
     __tablename__ = "table_instances"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    table_id = Column(Integer, ForeignKey("tables.id"), nullable=False)
     game_id = Column(Integer, ForeignKey("games.id"), nullable=False)
-    table_number = Column(Integer, nullable=False, default=1)
 
     # Relationships
+    table = relationship("Table", back_populates="table_instances")
     game = relationship("Game", back_populates="table_instances")
     assigned_users = relationship("User", back_populates="assigned_table")
 
-    __table_args__ = (
-        UniqueConstraint("game_id", "table_number", name="uq_game_table_number"),
-    )
+    __table_args__ = (UniqueConstraint("table_id", name="uq_table_instance_table_id"),)
 
     def __repr__(self):
-        return f"<TableInstance(id={self.id}, game_id={self.game_id}, table_number={self.table_number})>"
+        return f"<TableInstance(id={self.id}, table_id={self.table_id}, game_id={self.game_id})>"
 
     @property
     def current_player_count(self):
         return len(self.assigned_users)
 
     @property
+    def capacity(self):
+        """Max players = min(table capacity, game max_players)."""
+        return min(self.table.capacity, self.game.max_players)
+
+    @property
     def has_open_seats(self):
-        return self.current_player_count < self.game.max_players
+        return self.current_player_count < self.capacity
 
 
 class User(Base):

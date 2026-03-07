@@ -210,7 +210,7 @@ cp .env.example .env
 alembic upgrade head
 
 # Run the app
-streamlit run vote.py
+streamlit run Home.py
 ```
 
 ### Build & Push (for Kubernetes / registry)

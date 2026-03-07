@@ -10,4 +10,4 @@ COPY . .
 EXPOSE 8501
 
 # Run migrations on startup, then start Streamlit
-CMD ["sh", "-c", "alembic upgrade head && exec streamlit run vote.py --server.address=0.0.0.0"]
+CMD ["sh", "-c", "alembic upgrade head && exec streamlit run Home.py --server.address=0.0.0.0"]

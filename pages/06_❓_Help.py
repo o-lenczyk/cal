@@ -13,8 +13,10 @@ Welcome to the **Board Game Night Planner**!
 Use the sidebar to navigate:
 
 - **🗳️ Vote** — Submit your top 1–3 game preferences
+- **➕ Add Game** — Add new games manually
+- **📋 Current Games** — View and edit game catalog
 - **📊 Results** — View game scores and table assignments
-- **⚙️ Admin** — Manage games, tables, and run the assignment algorithm
+- **⚙️ Admin** — Run algorithms, manage tables, import from XLSX
 """)
 
 st.markdown("---")
