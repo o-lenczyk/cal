@@ -43,7 +43,7 @@ cal/
 ### 1.1 — Project Setup
 
 - [ ] Initialize Python virtual environment
-- [ ] Create `requirements.txt` with initial dependencies:
+- [x] Create `requirements.txt` with initial dependencies:
   ```
   streamlit
   sqlalchemy
@@ -51,15 +51,15 @@ cal/
   alembic
   python-dotenv
   ```
-- [ ] Create `.env.example` with:
+- [x] Create `.env.example` with:
   ```
   DATABASE_URL=postgresql://cal:cal@localhost:5432/cal
   ```
-- [ ] Create project directory structure (as shown above)
+- [x] Create project directory structure (as shown above)
 
 ### 1.2 — Local PostgreSQL (Docker Compose)
 
-- [ ] Create `docker-compose.yml` with PostgreSQL service:
+- [x] Create `docker-compose.yml` with PostgreSQL service:
   ```yaml
   services:
     db:
@@ -79,18 +79,18 @@ cal/
 
 ### 1.3 — Database Models & Migrations
 
-- [ ] Define SQLAlchemy models in `db/models.py`:
+- [x] Define SQLAlchemy models in `db/models.py`:
   - `User` — id, name, submitted_at, assigned_table_id
   - `Game` — id, title, min_players, max_players, is_selected
   - `TableInstance` — id, game_id, table_number
   - `Preference` — id, user_id, game_id, rank
-- [ ] Set up Alembic for migrations (`alembic init alembic`)
-- [ ] Generate and run initial migration
-- [ ] Create `db/database.py` with engine, session factory, and connection helper
+- [x] Set up Alembic for migrations (`alembic init alembic`)
+- [x] Generate and run initial migration
+- [x] Create `db/database.py` with engine, session factory, and connection helper
 
 ### 1.4 — Admin: Game Management
 
-- [ ] Admin page (`pages/03_admin.py`) with:
+- [x] Admin page (`pages/03_admin.py`) with:
   - Add a new game (title, min_players, max_players)
   - Edit existing game details
   - Delete a game
@@ -98,7 +98,7 @@ cal/
 
 ### 1.5 — User Voting Page
 
-- [ ] Voting page (`pages/01_vote.py`) with:
+- [x] Voting page (`pages/01_vote.py`) with:
   - User enters their name
   - Selects 1st, 2nd, and 3rd choice from dropdown (no duplicates allowed)
   - Submit button stores preferences with timestamp
@@ -107,26 +107,26 @@ cal/
 
 ### 1.6 — Scoring Algorithm
 
-- [ ] Implement in `logic/scoring.py`:
+- [x] Implement in `logic/scoring.py`:
   - Calculate weighted score per game: `3×n1 + 2×n2 + 1×n3`
   - Determine which games meet the threshold and min_players requirement
   - Mark qualifying games as `is_selected = True`
-- [ ] Display scores on results page (`pages/02_results.py`)
+- [x] Display scores on results page (`pages/02_results.py`)
 
 ### 1.7 — Assignment Algorithm
 
-- [ ] Implement in `logic/assignment.py`:
+- [x] Implement in `logic/assignment.py`:
   - Sort users by `submitted_at` (ascending — first-come, first-served)
   - For each user, try to assign to their 1st choice table
   - If full, try 2nd choice, then 3rd choice
   - If multiple table instances exist for a game, fill them in order
   - Flag unassigned users
-- [ ] Admin triggers assignment from the admin page
-- [ ] Display assignments on results page
+- [x] Admin triggers assignment from the admin page
+- [x] Display assignments on results page
 
 ### 1.8 — Admin: Table Management
 
-- [ ] On admin page, for each selected game:
+- [x] On admin page, for each selected game:
   - Show current number of tables
   - **➕ Add table** button — creates a new `TableInstance`
   - **➖ Remove table** button — removes the last empty table instance
@@ -134,13 +134,13 @@ cal/
 
 ### 1.9 — Fallback UI for Unassigned Players
 
-- [ ] On the voting/results page, detect if the current user is unassigned
-- [ ] Show a special view with only tables that have open seats
-- [ ] User picks a table manually → updates their `assigned_table_id`
+- [x] On the voting/results page, detect if the current user is unassigned
+- [x] Show a special view with only tables that have open seats
+- [x] User picks a table manually → updates their `assigned_table_id`
 
 ### 1.10 — Admin Dashboard
 
-- [ ] Summary view showing:
+- [x] Summary view showing:
   - Total users, total votes submitted
   - Game scores (ranked)
   - Table assignments (who is where)
@@ -290,7 +290,7 @@ These are planned features to be implemented after the core app is stable.
 
 | Milestone | Status |
 |-----------|--------|
-| 1. Local Python App | 🔜 Not started |
+| 1. Local Python App | ✅ Done |
 | 2. Dockerize | ⏳ Waiting |
 | 3. Kubernetes | ⏳ Waiting |
 | 4. Enhancements | ⏳ Waiting |
