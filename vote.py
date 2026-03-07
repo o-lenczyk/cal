@@ -38,20 +38,93 @@ if not games:
 
 game_titles = [g.title for g in games]
 
+# Pre-fill from session (same-session) or URL (survives refresh)
+def _get_voter_param() -> str:
+    if st.session_state.get("voter_name"):
+        return st.session_state.voter_name
+    try:
+        v = st.query_params.get("voter")
+        if isinstance(v, list) and v:
+            return (v[0] or "").strip()
+        if isinstance(v, str):
+            return v.strip()
+    except Exception:
+        pass
+    return ""
+
+
+def _set_voter_param(name: str) -> None:
+    st.session_state.voter_name = name
+    try:
+        if hasattr(st, "experimental_set_query_params"):
+            st.experimental_set_query_params(voter=name)
+        else:
+            st.query_params["voter"] = name
+    except Exception:
+        pass
+
+
+def _clear_voter_param() -> None:
+    st.session_state.pop("voter_name", None)
+    try:
+        if hasattr(st, "experimental_get_query_params"):
+            params = dict(st.experimental_get_query_params())
+        else:
+            params = dict(st.query_params)
+        params.pop("voter", None)
+        if hasattr(st, "experimental_set_query_params"):
+            st.experimental_set_query_params(**{k: (v[0] if isinstance(v, list) and len(v) == 1 else v) for k, v in params.items()})
+        else:
+            st.query_params.clear()
+            for k, v in params.items():
+                st.query_params[k] = v[0] if isinstance(v, list) and len(v) == 1 else v
+    except Exception:
+        pass
+
+saved_name = _get_voter_param()
+default_name = ""
+default_choices = ["", "", ""]
+if saved_name:
+    existing = get_existing_user(session, saved_name.strip())
+    if existing:
+        default_name = existing.name
+        prefs = (
+            session.query(Preference)
+            .filter(Preference.user_id == existing.id)
+            .order_by(Preference.rank)
+            .all()
+        )
+        for i, p in enumerate(prefs):
+            if i < 3 and p.game.title in game_map:
+                default_choices[i] = p.game.title
+
+# "Vote as someone else" to clear URL param (hidden for now, may use later)
+# if default_name:
+#     if st.button("🔄 Vote as someone else", help="Clear saved name and vote as a different person"):
+#         _clear_voter_param()
+#         st.rerun()
+
 # Voting form
 with st.form("vote_form"):
     st.subheader("Your Info")
-    user_name = st.text_input("Your Name", placeholder="Enter your name...")
+    user_name = st.text_input("Your Name", placeholder="Enter your name...", value=default_name)
 
     st.subheader("Your Choices")
+    if default_choices[0] or default_choices[1] or default_choices[2]:
+        st.caption("Your previous vote is shown. Change and submit to update.")
     col1, col2, col3 = st.columns(3)
 
+    opts = [""] + game_titles
+
+    def _idx(choice: str) -> int:
+        return opts.index(choice) if choice in opts else 0
+
     with col1:
-        choice_1 = st.selectbox("🥇 1st Choice (3 points)", options=[""] + game_titles, index=0)
+        choice_1 = st.selectbox("🥇 1st Choice (3 points)", options=opts, index=_idx(default_choices[0]))
     with col2:
-        choice_2 = st.selectbox("🥈 2nd Choice (2 points)", options=[""] + game_titles, index=0)
+        choice_2 = st.selectbox("🥈 2nd Choice (2 points)", options=opts, index=_idx(default_choices[1]))
     with col3:
-        choice_3 = st.selectbox("🥉 3rd Choice (1 point)", options=[""] + game_titles, index=0)
+        choice_3 = st.selectbox("🥉 3rd Choice (1 point)", options=opts, index=_idx(default_choices[2]))
 
     submitted = st.form_submit_button("🗳️ Submit Vote", use_container_width=True)
 
@@ -98,8 +171,11 @@ if submitted:
                 session.add(pref)
 
             session.commit()
+            # Save voter name to session + URL so it persists across refresh
+            _set_voter_param(user_name.strip())
             st.success(f"✅ Vote submitted successfully for **{user_name.strip()}**!")
             st.balloons()
+            st.rerun()  # Reload so form shows saved name and votes
 
         except Exception as e:
             session.rollback()
