@@ -22,3 +22,5 @@ env
 # Misc
 *.md
 !README.md
+*.xlsx
+*.xlsx

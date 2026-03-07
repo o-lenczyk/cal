@@ -1,12 +1,18 @@
+import os
+import tempfile
+
 import streamlit as st
 import pandas as pd
 
 from db.database import get_db
 from db.models import Game, User, Preference, TableInstance
+from db.import_games import import_from_xlsx
 from logic.scoring import calculate_scores, select_games
 from logic.assignment import assign_players
+from ui.theme_toggle import render_theme_toggle
 
 st.set_page_config(page_title="Admin", page_icon="⚙️", layout="wide")
+render_theme_toggle()
 st.title("⚙️ Admin Dashboard")
 st.markdown("---")
 
@@ -45,6 +51,26 @@ with st.expander("➕ Add New Game", expanded=False):
                 session.commit()
                 st.success(f"✅ Added '{new_title.strip()}' ({new_min}-{new_max} players)")
                 st.rerun()
+
+# Import from xlsx
+with st.expander("📥 Import from XLSX", expanded=False):
+    st.caption("Supports multi-sheet xlsx (incl. Kocie-gierce format). Uses BGG_Games sheet if present, else first sheet with Name column. Columns: ID, Name, Best With / Recommended With (e.g. '2–6 players').")
+    uploaded = st.file_uploader("Upload xlsx file", type=["xlsx"])
+    if uploaded and st.button("Import Games", use_container_width=True):
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp.write(uploaded.getvalue())
+            tmp_path = tmp.name
+        try:
+            result = import_from_xlsx(session, tmp_path)
+            st.success(f"✅ Imported {result['added']} game(s), skipped {result['skipped']} (already exist)")
+            if result["errors"]:
+                st.warning("Some rows had errors: " + "; ".join(result["errors"][:5]))
+            st.rerun()
+        except Exception as e:
+            session.rollback()
+            st.error(f"❌ Import failed: {e}")
+        finally:
+            os.unlink(tmp_path)
 
 # List existing games
 games = session.query(Game).order_by(Game.title).all()

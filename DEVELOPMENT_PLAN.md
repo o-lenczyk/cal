@@ -8,7 +8,7 @@ This document outlines the full development roadmap, from a local Python MVP to 
 
 ```
 cal/
-├── app.py                    # Streamlit entry point
+├── vote.py                   # Streamlit entry point (Vote page)
 ├── pages/                    # Streamlit multi-page app
 │   ├── 01_vote.py            # User voting page
 │   ├── 02_results.py         # View scores & assignments
@@ -164,7 +164,7 @@ cal/
   RUN pip install --no-cache-dir -r requirements.txt
   COPY . .
   EXPOSE 8501
-  CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0"]
+  CMD ["streamlit", "run", "vote.py", "--server.address=0.0.0.0"]
   ```
 
 ### 2.2 — Docker Compose (Full Stack)

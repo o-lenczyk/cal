@@ -1,17 +1,22 @@
 import streamlit as st
+import pandas as pd
 from sqlalchemy.orm import Session
 
 from db.database import get_db
 from db.models import Game, User, Preference
+from logic.scoring import calculate_scores
+from ui.theme_toggle import render_theme_toggle
 
-st.set_page_config(page_title="Vote", page_icon="🗳️", layout="wide")
+st.set_page_config(
+    page_title="🗳️ Vote",
+    page_icon="🗳️",
+    layout="wide",
+)
+
+render_theme_toggle()
 st.title("🗳️ Vote for Your Games")
 st.markdown("Pick **1 to 3** board games for game night (in order of preference).")
 st.markdown("---")
-
-
-def get_games(session: Session) -> list[Game]:
-    return session.query(Game).order_by(Game.title).all()
 
 
 def get_existing_user(session: Session, name: str) -> User | None:
@@ -20,7 +25,11 @@ def get_existing_user(session: Session, name: str) -> User | None:
 
 session = get_db()
 
-games = get_games(session)
+# Get games sorted by popularity (most votes first, ignore weights)
+scores = calculate_scores(session)
+scores.sort(key=lambda s: s["voter_count"], reverse=True)
+games = [s["game"] for s in scores]
+game_map = {g.title: g for g in games}
 
 if not games:
     st.warning("⚠️ No games available yet. Ask an admin to add some games first!")
@@ -28,7 +37,6 @@ if not games:
     st.stop()
 
 game_titles = [g.title for g in games]
-game_map = {g.title: g for g in games}
 
 # Voting form
 with st.form("vote_form"):
@@ -97,7 +105,17 @@ if submitted:
             session.rollback()
             st.error(f"❌ Error submitting vote: {e}")
 
-# Show current voters
+# Most popular games (between voting and who has voted)
+popular = [s for s in scores if s["voter_count"] > 0][:10]
+if popular:
+    st.markdown("---")
+    st.subheader("🔥 Most popular right now")
+    popular_df = pd.DataFrame([
+        {"Game": s["game"].title, "Votes": s["voter_count"]} for s in popular
+    ])
+    st.table(popular_df)
+
+# Who has voted
 st.markdown("---")
 st.subheader("📋 Who Has Voted")
 

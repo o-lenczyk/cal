@@ -5,8 +5,10 @@ from db.database import get_db
 from db.models import Game, User, Preference, TableInstance
 from logic.scoring import calculate_scores
 from logic.assignment import get_available_tables
+from ui.theme_toggle import render_theme_toggle
 
 st.set_page_config(page_title="Results", page_icon="📊", layout="wide")
+render_theme_toggle()
 st.title("📊 Results & Assignments")
 st.markdown("---")
 

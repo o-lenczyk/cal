@@ -18,6 +18,7 @@ class Game(Base):
     __tablename__ = "games"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    bgg_id = Column(Integer, nullable=True, index=True)  # BoardGameGeek ID (optional)
     title = Column(String(255), nullable=False, unique=True)
     min_players = Column(Integer, nullable=False, default=2)
     max_players = Column(Integer, nullable=False, default=6)

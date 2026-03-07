@@ -94,6 +94,7 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 
 | Feature                        | Description                                                                 |
 | ------------------------------ | --------------------------------------------------------------------------- |
+| **Import from XLSX**           | Upload an xlsx file with BGG ID, name, and player count to populate games   |
 | **Adjust tables per game**     | Increase or decrease the number of tables running the same game             |
 | **Set max players**            | Configure the maximum number of players allowed at each game/table          |
 | **View assignments**           | See which players are assigned where, and who is still unassigned           |
@@ -209,7 +210,7 @@ cp .env.example .env
 alembic upgrade head
 
 # Run the app
-streamlit run app.py
+streamlit run vote.py
 ```
 
 ### Build & Push (for Kubernetes / registry)
