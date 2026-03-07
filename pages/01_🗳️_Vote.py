@@ -6,7 +6,7 @@ from db.models import Game, User, Preference
 
 st.set_page_config(page_title="Vote", page_icon="🗳️", layout="wide")
 st.title("🗳️ Vote for Your Games")
-st.markdown("Pick your **top 3** board games for game night!")
+st.markdown("Pick **1 to 3** board games for game night (in order of preference).")
 st.markdown("---")
 
 
@@ -56,8 +56,8 @@ if submitted:
 
     choices = [c for c in [choice_1, choice_2, choice_3] if c]
 
-    if len(choices) < 3:
-        errors.append("Please select all 3 choices.")
+    if len(choices) < 1:
+        errors.append("Please select at least 1 game.")
 
     if len(choices) != len(set(choices)):
         errors.append("Each choice must be a different game.")
@@ -83,8 +83,8 @@ if submitted:
                 session.add(user)
                 session.flush()
 
-            # Add preferences
-            for rank, choice_title in enumerate([choice_1, choice_2, choice_3], start=1):
+            # Add preferences (only for selected choices, ranks 1, 2, 3)
+            for rank, choice_title in enumerate(choices, start=1):
                 game = game_map[choice_title]
                 pref = Preference(user_id=user.id, game_id=game.id, rank=rank)
                 session.add(pref)
