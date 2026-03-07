@@ -156,7 +156,7 @@ cal/
 
 ### 2.1 — Dockerfile
 
-- [ ] Create multi-stage `Dockerfile` for the Streamlit app:
+- [x] Create multi-stage `Dockerfile` for the Streamlit app:
   ```dockerfile
   FROM python:3.12-slim
   WORKDIR /app
@@ -169,7 +169,7 @@ cal/
 
 ### 2.2 — Docker Compose (Full Stack)
 
-- [ ] Update `docker-compose.yml` to include both services:
+- [x] Update `docker-compose.yml` to include both services:
   ```yaml
   services:
     app:
@@ -202,10 +202,10 @@ cal/
 
 ### 2.3 — Configuration & Testing
 
-- [ ] Ensure all config comes from environment variables
-- [ ] Run migrations on container startup (or via entrypoint script)
-- [ ] Test full stack: `docker compose up --build`
-- [ ] Verify app accessible at `http://localhost:8501`
+- [x] Ensure all config comes from environment variables
+- [x] Run migrations on container startup (or via entrypoint script)
+- [x] Test full stack: `docker compose up --build`
+- [x] Verify app accessible at `http://localhost:8501`
 
 ---
 
@@ -291,7 +291,7 @@ These are planned features to be implemented after the core app is stable.
 | Milestone | Status |
 |-----------|--------|
 | 1. Local Python App | ✅ Done |
-| 2. Dockerize | ⏳ Waiting |
+| 2. Dockerize | ✅ Done |
 | 3. Kubernetes | ⏳ Waiting |
 | 4. Enhancements | ⏳ Waiting |
 

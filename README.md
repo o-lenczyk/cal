@@ -179,16 +179,34 @@ Import your game catalog directly from a Google Sheet instead of manually adding
 
 ## 🚀 Getting Started
 
+### Option 1: Docker (recommended)
+
 ```bash
-# Clone the repository
 git clone <repo-url>
 cd cal
+
+docker compose up --build
+```
+
+Then open http://localhost:8501. The app runs migrations on startup.
+
+### Option 2: Local Python
+
+```bash
+git clone <repo-url>
+cd cal
+
+# Start PostgreSQL (Docker)
+docker compose up -d db
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up PostgreSQL database
-# (configure connection string in .env or config file)
+# Copy .env.example to .env and adjust if needed
+cp .env.example .env
+
+# Run migrations
+alembic upgrade head
 
 # Run the app
 streamlit run app.py
