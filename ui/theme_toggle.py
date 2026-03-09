@@ -1,33 +1,23 @@
 """Light/dark theme toggle and sidebar navigation for Streamlit."""
 import streamlit as st
 
+from ui.theme import apply_theme, get_theme, set_theme
 from ui.sidebar_nav import render_sidebar_nav
 
 
 def render_theme_toggle():
     """Render custom nav (translated), then theme toggle in the sidebar."""
     render_sidebar_nav()
-    if "theme" not in st.session_state:
-        st.session_state.theme = "light"
+
+    # Load persisted theme and apply (must run before any widgets)
+    theme = get_theme()
+    st.session_state.theme = theme
+    apply_theme(theme)
 
     def toggle():
-        prev = st.session_state.theme
-        st.session_state.theme = "dark" if prev == "light" else "light"
-        base = st.session_state.theme
-        try:
-            config = getattr(st, "_config", None)
-            if config and hasattr(config, "set_option"):
-                config.set_option("theme.base", base)
-                if base == "dark":
-                    config.set_option("theme.backgroundColor", "#0e1117")
-                    config.set_option("theme.secondaryBackgroundColor", "#262730")
-                    config.set_option("theme.textColor", "#fafafa")
-                else:
-                    config.set_option("theme.backgroundColor", "#ffffff")
-                    config.set_option("theme.secondaryBackgroundColor", "#f0f2f6")
-                    config.set_option("theme.textColor", "#31333f")
-        except Exception:
-            pass
+        new_theme = "dark" if st.session_state.theme == "light" else "light"
+        set_theme(new_theme)
+        apply_theme(new_theme)
 
     label = "🌙 Dark" if st.session_state.theme == "light" else "☀️ Light"
     if st.sidebar.button(label, key="theme_toggle", help="Switch theme"):
