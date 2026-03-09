@@ -96,6 +96,11 @@ TRANSLATIONS = {
         "results_all_assigned": "✅ All voters have been assigned to tables!",
         # Admin page
         "admin_title": "⚙️ Admin Dashboard",
+        "admin_next_meeting": "📅 Next meeting date",
+        "admin_next_meeting_help": "Meetings are on Tuesdays. Set the date people are voting for.",
+        "admin_save_date": "Save date",
+        "admin_next_tuesday": "→ Next Tuesday",
+        "admin_date_saved": "✅ Meeting date saved.",
         "admin_language": "🌐 Language",
         "admin_select_language": "Select language",
         "admin_language_help": "App language for all users",
@@ -269,6 +274,11 @@ TRANSLATIONS = {
         "results_all_assigned": "✅ Wszyscy głosujący zostali przypisani!",
         # Admin page
         "admin_title": "⚙️ Panel administracyjny",
+        "admin_next_meeting": "📅 Data kolejnego spotkania",
+        "admin_next_meeting_help": "Spotkania odbywają się we wtorki. Ustaw datę, na którą ludzie głosują.",
+        "admin_save_date": "Zapisz datę",
+        "admin_next_tuesday": "→ Następny wtorek",
+        "admin_date_saved": "✅ Data spotkania zapisana.",
         "admin_language": "🌐 Język",
         "admin_select_language": "Wybierz język",
         "admin_language_help": "Język aplikacji dla wszystkich użytkowników",

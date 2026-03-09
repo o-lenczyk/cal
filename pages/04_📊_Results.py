@@ -8,6 +8,7 @@ from db.models import Game, User, Preference, TableInstance, Table
 from db.user_helpers import get_user_by_google_id
 from logic.scoring import calculate_scores
 from logic.assignment import get_available_tables, manually_assign_player
+from meeting_date import get_next_meeting_date
 from ui.theme_toggle import render_theme_toggle
 
 st.set_page_config(page_title="Results", page_icon="📊", layout="wide")
@@ -17,11 +18,12 @@ st.title(t("results_title"))
 st.markdown("---")
 
 session = get_db()
+meeting_date = get_next_meeting_date(session)
 
 # --- Game Scores ---
 st.subheader(t("results_scores"))
 
-scores = calculate_scores(session)
+scores = calculate_scores(session, meeting_date)
 
 if scores:
     score_data = []
@@ -64,7 +66,7 @@ if table_instances:
     for ti in table_instances:
         assigned_users = (
             session.query(User)
-            .filter(User.assigned_table_id == ti.id)
+            .filter(User.assigned_table_id == ti.id, User.meeting_date == meeting_date)
             .order_by(User.name)
             .all()
         )
@@ -89,8 +91,11 @@ st.subheader(t("results_unassigned"))
 
 unassigned_users = (
     session.query(User)
-    .filter(User.assigned_table_id.is_(None))
-    .filter(User.submitted_at.isnot(None))
+    .filter(
+        User.meeting_date == meeting_date,
+        User.assigned_table_id.is_(None),
+        User.submitted_at.isnot(None),
+    )
     .order_by(User.name)
     .all()
 )
@@ -113,7 +118,7 @@ if unassigned_with_votes:
     st.subheader(t("results_manual_select"))
     st.markdown(t("results_manual_desc"))
 
-    available = get_available_tables(session)
+    available = get_available_tables(session, meeting_date)
 
     if available:
         # When OAuth is enabled and user is logged in, auto-detect if they're unassigned
@@ -121,7 +126,7 @@ if unassigned_with_votes:
         if is_oauth_configured() and is_logged_in():
             oauth = get_oauth_user()
             if oauth:
-                u = get_user_by_google_id(session, oauth["google_id"])
+                u = get_user_by_google_id(session, oauth["google_id"], meeting_date)
                 if u and u.assigned_table_id is None:
                     pref_count = session.query(Preference).filter(Preference.user_id == u.id).count()
                     if pref_count > 0:
@@ -150,7 +155,13 @@ if unassigned_with_votes:
             elif not current_user_for_assign and not selected_user_name:
                 st.error(t("results_err_name"))
             else:
-                user = current_user_for_assign or session.query(User).filter(User.name == selected_user_name).first()
+                user = (
+                    current_user_for_assign
+                    or session.query(User).filter(
+                        User.name == selected_user_name,
+                        User.meeting_date == meeting_date,
+                    ).first()
+                )
                 if not user:
                     st.error(t("results_err_not_found"))
                 else:

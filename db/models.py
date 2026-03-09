@@ -1,5 +1,6 @@
 from sqlalchemy import (
     Column,
+    Date,
     Integer,
     String,
     Boolean,
@@ -86,10 +87,15 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
-    google_id = Column(String(255), unique=True, nullable=True, index=True)
+    google_id = Column(String(255), nullable=True, index=True)
     email = Column(String(255), nullable=True)
+    meeting_date = Column(Date, nullable=False)  # which meeting this vote is for
     submitted_at = Column(DateTime(timezone=True), server_default=func.now())
     assigned_table_id = Column(Integer, ForeignKey("table_instances.id"), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("google_id", "meeting_date", name="uq_user_google_meeting"),
+    )
 
     # Relationships
     assigned_table = relationship("TableInstance", back_populates="assigned_users")

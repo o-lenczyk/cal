@@ -10,7 +10,8 @@ from auth import (
     render_logout_button,
 )
 from db.database import get_db
-from db.user_helpers import get_user_by_google_id
+from db.models import User
+from db.user_helpers import get_any_user_by_google_id
 from ui.theme_toggle import render_theme_toggle
 
 st.set_page_config(
@@ -39,7 +40,7 @@ if not oauth:
     st.stop()
 
 session = get_db()
-current_user = get_user_by_google_id(session, oauth["google_id"])
+current_user = get_any_user_by_google_id(session, oauth["google_id"])
 google_name = oauth["name"] or oauth["email"] or "Unknown"
 display_name = current_user.name if current_user else google_name
 
@@ -64,18 +65,24 @@ if submitted:
     else:
         try:
             if current_user:
-                current_user.name = name_to_save
+                # Update name on all User rows for this google_id (all meetings)
+                session.query(User).filter(User.google_id == oauth["google_id"]).update(
+                    {User.name: name_to_save}
+                )
                 session.commit()
                 st.success(t("settings_updated", name=name_to_save))
             else:
                 # Create user if they haven't voted yet
                 from db.user_helpers import get_or_create_user_by_oauth
 
+                from meeting_date import get_next_meeting_date
+
                 get_or_create_user_by_oauth(
                     session,
                     google_id=oauth["google_id"],
                     email=oauth["email"],
                     name=name_to_save,
+                    meeting_date=get_next_meeting_date(session),
                 )
                 session.commit()
                 st.success(t("settings_set", name=name_to_save))

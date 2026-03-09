@@ -1,30 +1,23 @@
+from datetime import date
 from sqlalchemy.orm import Session
 
 from db.models import User, Preference, TableInstance, Game, Table
 
 
-def assign_players(session: Session) -> dict:
+def assign_players(session: Session, meeting_date: date) -> dict:
     """
     Assign players to tables using First-Come, First-Served (FCFS) approach.
-    
-    Users are sorted by submission timestamp (earliest first).
-    For each user, the system tries their 1st choice, then 2nd, then 3rd.
-    If multiple table instances exist for a game, they are filled in order.
-    
-    Returns a dict with assignment results:
-    {
-        "assigned": [(user, table_instance), ...],
-        "unassigned": [user, ...],
-    }
+    Only processes users for the given meeting_date.
     """
-    # Reset all assignments first
-    session.query(User).update({User.assigned_table_id: None})
+    # Reset assignments for users of this meeting only
+    session.query(User).filter(User.meeting_date == meeting_date).update(
+        {User.assigned_table_id: None}
+    )
     session.flush()
 
-    # Get all users sorted by submission time (FCFS)
     users = (
         session.query(User)
-        .filter(User.submitted_at.isnot(None))
+        .filter(User.meeting_date == meeting_date, User.submitted_at.isnot(None))
         .order_by(User.submitted_at.asc())
         .all()
     )
@@ -60,10 +53,12 @@ def assign_players(session: Session) -> dict:
             )
 
             for table in tables:
-                # Count current players at this table
                 current_count = (
                     session.query(User)
-                    .filter(User.assigned_table_id == table.id)
+                    .filter(
+                        User.assigned_table_id == table.id,
+                        User.meeting_date == meeting_date,
+                    )
                     .count()
                 )
 
@@ -89,7 +84,7 @@ def assign_players(session: Session) -> dict:
     }
 
 
-def get_available_tables(session: Session) -> list[dict]:
+def get_available_tables(session: Session, meeting_date: date) -> list[dict]:
     """
     Get all tables that still have open seats.
     Used for the fallback mechanism for unassigned players.
@@ -109,7 +104,10 @@ def get_available_tables(session: Session) -> list[dict]:
     for table in tables:
         current_count = (
             session.query(User)
-            .filter(User.assigned_table_id == table.id)
+            .filter(
+                User.assigned_table_id == table.id,
+                User.meeting_date == meeting_date,
+            )
             .count()
         )
         capacity = min(table.table.capacity, table.game.max_players)

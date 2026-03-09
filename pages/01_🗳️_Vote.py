@@ -15,6 +15,7 @@ from db.database import get_db
 from db.models import Game, User, Preference
 from db.user_helpers import get_user_by_google_id, get_user_by_name, get_or_create_user_by_oauth
 from logic.scoring import calculate_scores
+from meeting_date import get_next_meeting_date
 from ui.theme_toggle import render_theme_toggle
 
 st.set_page_config(
@@ -31,9 +32,10 @@ st.markdown(t("vote_subtitle"))
 st.markdown("---")
 
 session = get_db()
+meeting_date = get_next_meeting_date(session)
 
-# Get games sorted by popularity
-scores = calculate_scores(session)
+# Get games sorted by popularity (for this meeting)
+scores = calculate_scores(session, meeting_date)
 scores.sort(key=lambda s: s["voter_count"], reverse=True)
 games = [s["game"] for s in scores]
 game_map = {g.title: g for g in games}
@@ -58,7 +60,7 @@ if use_oauth:
         st.stop()
     oauth = get_oauth_user()
     if oauth:
-        current_user = get_user_by_google_id(session, oauth["google_id"])
+        current_user = get_user_by_google_id(session, oauth["google_id"], meeting_date)
         if current_user:
             default_name = current_user.name
             prefs = (
@@ -89,7 +91,7 @@ else:
 
     saved_name = _get_voter_param()
     if saved_name:
-        existing = get_user_by_name(session, saved_name.strip())
+        existing = get_user_by_name(session, saved_name.strip(), meeting_date)
         if existing:
             current_user = existing
             default_name = existing.name
@@ -198,9 +200,10 @@ if submitted:
                         google_id=oauth["google_id"],
                         email=oauth["email"],
                         name=user_name or (oauth["name"] if oauth else ""),
+                        meeting_date=meeting_date,
                     )
             else:
-                existing_user = get_user_by_name(session, user_name.strip())
+                existing_user = get_user_by_name(session, user_name.strip(), meeting_date)
                 if existing_user:
                     session.query(Preference).filter(
                         Preference.user_id == existing_user.id
@@ -208,7 +211,7 @@ if submitted:
                     user = existing_user
                     user.submitted_at = func.now()
                 else:
-                    user = User(name=user_name.strip())
+                    user = User(name=user_name.strip(), meeting_date=meeting_date)
                     session.add(user)
                     session.flush()
 
@@ -244,7 +247,12 @@ if popular:
 st.markdown("---")
 st.subheader(t("vote_who_voted"))
 
-users = session.query(User).order_by(User.submitted_at.desc()).all()
+users = (
+    session.query(User)
+    .filter(User.meeting_date == meeting_date)
+    .order_by(User.submitted_at.desc())
+    .all()
+)
 
 if users:
     for user in users:

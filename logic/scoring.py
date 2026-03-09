@@ -1,23 +1,25 @@
+from datetime import date
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
-from db.models import Game, Preference, TableInstance, Table
+from db.models import Game, Preference, TableInstance, Table, User
 
 
-def calculate_scores(session: Session) -> list[dict]:
+def calculate_scores(session: Session, meeting_date: date) -> list[dict]:
     """
-    Calculate weighted scores for all games based on user preferences.
-    
+    Calculate weighted scores for all games based on user preferences for the given meeting.
     Scoring: 1st choice = 3 points, 2nd choice = 2 points, 3rd choice = 1 point
-    Formula: Score = 3×n1 + 2×n2 + 1×n3
-    
     Returns a list of dicts: [{"game": Game, "score": int, "voter_count": int}, ...]
     """
     games = session.query(Game).all()
     results = []
 
     for game in games:
-        preferences = session.query(Preference).filter(Preference.game_id == game.id).all()
+        preferences = (
+            session.query(Preference)
+            .join(Preference.user)
+            .filter(Preference.game_id == game.id, User.meeting_date == meeting_date)
+            .all()
+        )
 
         n1 = sum(1 for p in preferences if p.rank == 1)
         n2 = sum(1 for p in preferences if p.rank == 2)
@@ -40,7 +42,7 @@ def calculate_scores(session: Session) -> list[dict]:
     return results
 
 
-def select_games(session: Session, min_score: int = 1) -> list[Game]:
+def select_games(session: Session, meeting_date: date, min_score: int = 1) -> list[Game]:
     """
     Select games that meet the minimum score threshold and have enough
     interested players to meet their min_players requirement.
@@ -49,7 +51,7 @@ def select_games(session: Session, min_score: int = 1) -> list[Game]:
     
     Returns list of selected games.
     """
-    scores = calculate_scores(session)
+    scores = calculate_scores(session, meeting_date)
     selected = []
 
     for entry in scores:

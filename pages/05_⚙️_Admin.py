@@ -1,10 +1,12 @@
 import os
 import tempfile
+from datetime import date
 
 import streamlit as st
 import pandas as pd
 
 from i18n import t, get_language, set_language, LANGUAGES
+from meeting_date import get_next_meeting_date, set_next_meeting_date, _next_tuesday
 from db.database import get_db
 from db.models import Game, User, Preference, TableInstance, Table
 from db.import_games import import_from_xlsx
@@ -20,7 +22,33 @@ st.markdown("---")
 session = get_db()
 
 # ============================================================
-# Language selector (at top)
+# Next meeting date (at very top)
+# ============================================================
+st.header(t("admin_next_meeting"))
+st.caption(t("admin_next_meeting_help"))
+
+meeting_date = get_next_meeting_date(session)
+current_date = meeting_date
+new_date = st.date_input(
+    " ",
+    value=current_date,
+    min_value=date.today(),
+    key="admin_meeting_date",
+)
+if new_date != current_date:
+    if st.button(t("admin_save_date"), key="admin_save_date_btn"):
+        set_next_meeting_date(session, new_date)
+        st.success(t("admin_date_saved"))
+        st.rerun()
+    if st.button(t("admin_next_tuesday"), key="admin_next_tue"):
+        set_next_meeting_date(session, _next_tuesday(new_date))
+        st.success(t("admin_date_saved"))
+        st.rerun()
+
+st.markdown("---")
+
+# ============================================================
+# Language selector
 # ============================================================
 st.header(t("admin_language"))
 current_lang = get_language()
@@ -74,7 +102,7 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     if st.button(t("admin_calc_scores"), use_container_width=True):
-        selected = select_games(session)
+        selected = select_games(session, meeting_date)
         if selected:
             st.success(t("admin_calc_success", count=len(selected), games=", ".join(g.title for g in selected)))
         else:
@@ -83,7 +111,7 @@ with col1:
 
 with col2:
     if st.button(t("admin_run_assignment"), use_container_width=True):
-        result = assign_players(session)
+        result = assign_players(session, meeting_date)
         assigned_count = len(result["assigned"])
         unassigned_count = len(result["unassigned"])
         st.success(t("admin_assigned", assigned=assigned_count, unassigned=unassigned_count))
@@ -93,7 +121,9 @@ with col2:
 
 with col3:
     if st.button(t("admin_reset"), use_container_width=True):
-        session.query(User).update({User.assigned_table_id: None})
+        session.query(User).filter(User.meeting_date == meeting_date).update(
+            {User.assigned_table_id: None}
+        )
         session.commit()
         st.success(t("admin_reset_success"))
         st.rerun()
@@ -193,13 +223,17 @@ elif not selected_games:
 st.markdown("---")
 st.header(t("admin_overview"))
 
-total_users = session.query(User).count()
+total_users = session.query(User).filter(User.meeting_date == meeting_date).count()
 users_with_votes = (
     session.query(User)
-    .filter(User.submitted_at.isnot(None))
+    .filter(User.meeting_date == meeting_date, User.submitted_at.isnot(None))
     .count()
 )
-assigned_users = session.query(User).filter(User.assigned_table_id.isnot(None)).count()
+assigned_users = (
+    session.query(User)
+    .filter(User.meeting_date == meeting_date, User.assigned_table_id.isnot(None))
+    .count()
+)
 total_games = session.query(Game).count()
 selected_count = session.query(Game).filter(Game.is_selected == True).count()
 
