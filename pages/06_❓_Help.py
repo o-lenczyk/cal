@@ -1,23 +1,24 @@
 import streamlit as st
 
+from i18n import t
 from ui.theme_toggle import render_theme_toggle
 
 st.set_page_config(page_title="Help", page_icon="❓", layout="wide")
 render_theme_toggle()
-st.title("❓ Help")
+st.title(t("help_title"))
 st.markdown("---")
 
-st.markdown("""
-Welcome to the **Board Game Night Planner**!
+st.markdown(f"""
+{t("help_welcome")}
 
-Use the sidebar to navigate:
+{t("help_nav")}
 
-- **🗳️ Vote** — Submit your top 1–3 game preferences
-- **➕ Add Game** — Add new games manually
-- **📋 Current Games** — View and edit game catalog
-- **📊 Results** — View game scores and table assignments
-- **⚙️ Admin** — Run algorithms, manage tables, import from XLSX
+- {t("help_vote")}
+- {t("help_add")}
+- {t("help_games")}
+- {t("help_results")}
+- {t("help_admin")}
 """)
 
 st.markdown("---")
-st.caption("Built with Streamlit • PostgreSQL • Python")
+st.caption(t("help_built"))

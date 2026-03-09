@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import streamlit as st
 
+from i18n import t
+
 
 def is_oauth_configured() -> bool:
     """Check if OAuth credentials are properly configured in secrets."""
@@ -50,14 +52,14 @@ def render_login_gate() -> bool:
         return True
     if is_logged_in():
         return True
-    st.header("Log in to vote")
-    st.markdown("Sign in with your Google account to submit and edit your votes.")
-    st.button("Log in with Google", on_click=st.login, type="primary")
+    st.header(t("auth_login_title"))
+    st.markdown(t("auth_login_desc"))
+    st.button(t("auth_login_btn"), on_click=st.login, type="primary")
     return False
 
 
 def render_logout_button():
     """Show a logout button in the sidebar when OAuth is enabled and user is logged in."""
     if is_oauth_configured() and is_logged_in():
-        if st.sidebar.button("Log out", help="Sign out of your Google account"):
+        if st.sidebar.button(t("auth_logout"), help=t("auth_logout_help")):
             st.logout()

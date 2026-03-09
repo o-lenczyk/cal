@@ -99,6 +99,18 @@ class User(Base):
         return f"<User(id={self.id}, name='{self.name}', assigned_table_id={self.assigned_table_id})>"
 
 
+class AppSetting(Base):
+    """Key-value app settings (e.g. language)."""
+
+    __tablename__ = "app_settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(String(500), nullable=False)
+
+    def __repr__(self):
+        return f"<AppSetting(key='{self.key}', value='{self.value[:20]}...')>"
+
+
 class Preference(Base):
     __tablename__ = "preferences"
 

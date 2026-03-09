@@ -3,6 +3,7 @@ import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
+from i18n import t
 from auth import (
     is_oauth_configured,
     is_logged_in,
@@ -25,8 +26,8 @@ st.set_page_config(
 render_theme_toggle()
 render_logout_button()
 
-st.title("🗳️ Vote for Your Games")
-st.markdown("Pick **1 to 3** board games for game night (in order of preference).")
+st.title(t("vote_title"))
+st.markdown(t("vote_subtitle"))
 st.markdown("---")
 
 session = get_db()
@@ -38,7 +39,7 @@ games = [s["game"] for s in scores]
 game_map = {g.title: g for g in games}
 
 if not games:
-    st.warning("⚠️ No games available yet. Ask an admin to add some games first!")
+    st.warning(t("vote_no_games"))
     session.close()
     st.stop()
 
@@ -105,12 +106,12 @@ else:
 
 # --- My Votes section (when logged in / identified and has votes) ---
 if current_user and (default_choices[0] or default_choices[1] or default_choices[2]):
-    with st.expander("📋 My current votes", expanded=True):
+    with st.expander(t("vote_my_votes"), expanded=True):
         prefs_display = [c for c in default_choices if c]
         for i, title in enumerate(prefs_display, start=1):
             emoji = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
             st.text(f"{emoji} {title}")
-        st.caption("Change your choices below and submit to update.")
+        st.caption(t("vote_change_below"))
     st.markdown("---")
 
 
@@ -127,23 +128,23 @@ def _set_voter_param(name: str) -> None:
 
 # --- Voting form ---
 with st.form("vote_form"):
-    st.subheader("Your Info")
+    st.subheader(t("vote_your_info"))
     if use_oauth and is_logged_in():
         st.text_input(
-            "Your Name",
+            t("vote_your_name"),
             value=default_name,
             disabled=True,
-            help="Change your display name in 👤 User Settings",
+            help=t("vote_name_help"),
         )
         user_name = default_name.strip()
     else:
         user_name = st.text_input(
-            "Your Name", placeholder="Enter your name...", value=default_name
+            t("vote_your_name"), placeholder=t("vote_name_placeholder"), value=default_name
         )
 
-    st.subheader("Your Choices")
+    st.subheader(t("vote_your_choices"))
     if default_choices[0] or default_choices[1] or default_choices[2]:
-        st.caption("Your previous vote is shown. Change and submit to update.")
+        st.caption(t("vote_previous_shown"))
     col1, col2, col3 = st.columns(3)
 
     opts = [""] + game_titles
@@ -153,18 +154,18 @@ with st.form("vote_form"):
 
     with col1:
         choice_1 = st.selectbox(
-            "🥇 1st Choice (3 points)", options=opts, index=_idx(default_choices[0])
+            t("vote_1st_choice"), options=opts, index=_idx(default_choices[0])
         )
     with col2:
         choice_2 = st.selectbox(
-            "🥈 2nd Choice (2 points)", options=opts, index=_idx(default_choices[1])
+            t("vote_2nd_choice"), options=opts, index=_idx(default_choices[1])
         )
     with col3:
         choice_3 = st.selectbox(
-            "🥉 3rd Choice (1 point)", options=opts, index=_idx(default_choices[2])
+            t("vote_3rd_choice"), options=opts, index=_idx(default_choices[2])
         )
 
-    submitted = st.form_submit_button("🗳️ Submit Vote", use_container_width=True)
+    submitted = st.form_submit_button(t("vote_submit"), use_container_width=True)
 
 if submitted:
     errors = []
@@ -172,15 +173,15 @@ if submitted:
 
     if use_oauth:
         if not user_name.strip():
-            errors.append("Please log in to vote.")
+            errors.append(t("vote_err_login"))
     else:
         if not user_name.strip():
-            errors.append("Please enter your name.")
+            errors.append(t("vote_err_name"))
 
     if len(choices) < 1:
-        errors.append("Please select at least 1 game.")
+        errors.append(t("vote_err_one_game"))
     if len(choices) != len(set(choices)):
-        errors.append("Each choice must be a different game.")
+        errors.append(t("vote_err_different"))
 
     if errors:
         for err in errors:
@@ -190,7 +191,7 @@ if submitted:
             if use_oauth:
                 oauth = get_oauth_user()
                 if not oauth:
-                    st.error("❌ Session expired. Please log in again.")
+                    st.error(t("vote_err_session"))
                 else:
                     user = get_or_create_user_by_oauth(
                         session,
@@ -221,7 +222,7 @@ if submitted:
 
             if not use_oauth:
                 _set_voter_param(user_name.strip())
-            st.success(f"✅ Vote submitted successfully for **{user.name}**!")
+            st.success(t("vote_success", name=user.name))
             st.balloons()
             st.rerun()
 
@@ -233,15 +234,15 @@ if submitted:
 popular = [s for s in scores if s["voter_count"] > 0][:10]
 if popular:
     st.markdown("---")
-    st.subheader("🔥 Most popular right now")
+    st.subheader(t("vote_popular"))
     popular_df = pd.DataFrame(
-        [{"Game": s["game"].title, "Votes": s["voter_count"]} for s in popular]
+        [{t("vote_game"): s["game"].title, t("vote_votes"): s["voter_count"]} for s in popular]
     )
     st.table(popular_df)
 
 # Who has voted
 st.markdown("---")
-st.subheader("📋 Who Has Voted")
+st.subheader(t("vote_who_voted"))
 
 users = session.query(User).order_by(User.submitted_at.desc()).all()
 
@@ -258,6 +259,6 @@ if users:
         )
         st.text(f"👤 {user.name} — {pref_text}")
 else:
-    st.info("No votes yet. Be the first to vote!")
+    st.info(t("vote_no_votes"))
 
 session.close()

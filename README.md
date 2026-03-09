@@ -2,7 +2,7 @@
 
 A web application for organizing board game nights with a group of 8–12 players. Users submit their top three game preferences, the system identifies the most popular titles, and automatically assigns players to physical tables — with a manual fallback for anyone who can't be placed.
 
-**Implemented:** Vote, Add Game, Current Games (view/edit/delete), Results, Admin (Import XLSX, algorithms, physical tables), Help, light/dark theme, **Google OAuth login** (store votes by account, easy access & edit). Entry redirects to Vote. **Planned:** Google Sheets import.
+**Implemented:** Vote, Add Game, Current Games (view/edit/delete), Results, Admin (Import XLSX, algorithms, physical tables), Help, light/dark theme, **Google OAuth login**, **Polish & English** (admin selects language). Entry redirects to Vote. **Planned:** Google Sheets import.
 
 ---
 
@@ -39,6 +39,7 @@ A web application for organizing board game nights with a group of 8–12 player
 | Light/dark theme toggle | ✅ |
 | Docker & Kubernetes deployment | ✅ |
 | Google OAuth login | ✅ |
+| Polish & English (admin language) | ✅ |
 
 ---
 
@@ -92,6 +93,7 @@ A web application for organizing board game nights with a group of 8–12 player
 - **Physical tables** — define real tables (e.g. 2×6, 2×4 seats) and assign games
 - **Theme toggle** — light/dark mode
 - **Google OAuth login** — sign in with Google to store votes by account; view and edit your votes easily
+- **Polish & English** — admin selects app language in Admin dashboard
 
 ---
 
@@ -152,7 +154,7 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 | **➕ Add Game**   | Add a new game manually (title, min/max players).                             |
 | **📋 Current Games** | View all games in a table; edit or delete games.                         |
 | **📊 Results**    | View game scores, table assignments, and who has voted. Unassigned players pick a table manually. |
-| **⚙️ Admin**      | Import from XLSX, run algorithms (Calculate Scores, Player Assignment, Reset), manage physical tables, assign games to tables, overview metrics. |
+| **⚙️ Admin**      | Set app language (English/Polish), import from XLSX, run algorithms, manage physical tables, assign games to tables, overview metrics. |
 | **❓ Help**       | How the app works.                                                          |
 | **👤 User Settings** | Change your display name (OAuth only).                                      |
 
@@ -218,6 +220,13 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 | `user_id` | `INTEGER REFERENCES users(id)`      | Who submitted this preference      |
 | `game_id` | `INTEGER REFERENCES games(id)`      | Which game was chosen               |
 | `rank`    | `INTEGER CHECK (rank IN (1, 2, 3))` | Preference rank (1st, 2nd, or 3rd) |
+
+### `app_settings`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `key`  | `VARCHAR(100) PRIMARY KEY` | Setting key (e.g. `language`) |
+| `value`| `VARCHAR(500) NOT NULL`   | Setting value (e.g. `en`, `pl`) |
 
 ### Entity Relationships
 
