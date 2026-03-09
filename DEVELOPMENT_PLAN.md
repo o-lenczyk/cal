@@ -248,15 +248,15 @@ These are planned features to be implemented after the core app is stable.
 - [ ] Better mobile-first responsive design
 - [ ] User session management
 
-### 4.3 — Google OAuth Login
-- [ ] **Streamlit native auth** — use `st.login()` / `st.logout()` (Streamlit 1.42+)
-- [ ] Add `Authlib>=1.3.2` to requirements
-- [ ] Configure `.streamlit/secrets.toml` or env vars:
-  - `[auth]` section: `redirect_uri`, `cookie_secret`, `client_id`, `client_secret`, `server_metadata_url`
-- [ ] **Google Cloud setup** — create OAuth 2.0 Web client, consent screen, redirect URI
-- [ ] Replace "Your Name" text input on Vote page with login gate; use `st.user.name` or `st.user.email` as voter identity
-- [ ] **Optional DB migration** — add `google_id` and/or `email` to `User` for stable identity
-- [ ] **Deployment** — set `redirect_uri` to production URL in Google Console and secrets
+### 4.3 — Google OAuth Login ✅
+- [x] **Streamlit native auth** — use `st.login()` / `st.logout()` (Streamlit 1.42+)
+- [x] Add `Authlib>=1.3.2` to requirements
+- [x] Configure `.streamlit/secrets.toml` or env vars
+- [x] **Google Cloud setup** — create OAuth 2.0 Web client, consent screen, redirect URI
+- [x] Replace "Your Name" text input on Vote page with login gate when OAuth configured
+- [x] **DB migration** — add `google_id`, `email` to `User`; drop unique on `name`
+- [x] **My Votes** section — expandable view of current user's votes, easy edit flow
+- [x] **Fallback** — legacy name-based voting when OAuth not configured
 
 ### 4.4 — Event History
 - [ ] Support multiple game night events

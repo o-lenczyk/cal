@@ -2,7 +2,7 @@
 
 A web application for organizing board game nights with a group of 8–12 players. Users submit their top three game preferences, the system identifies the most popular titles, and automatically assigns players to physical tables — with a manual fallback for anyone who can't be placed.
 
-**Implemented:** Vote, Add Game, Current Games (view/edit/delete), Results, Admin (Import XLSX, algorithms, physical tables), Help, light/dark theme. Entry redirects to Vote. **Planned:** Google OAuth login, Google Sheets import.
+**Implemented:** Vote, Add Game, Current Games (view/edit/delete), Results, Admin (Import XLSX, algorithms, physical tables), Help, light/dark theme, **Google OAuth login** (store votes by account, easy access & edit). Entry redirects to Vote. **Planned:** Google Sheets import.
 
 ---
 
@@ -38,7 +38,7 @@ A web application for organizing board game nights with a group of 8–12 player
 | Vote as entry page (Home redirects) | ✅ |
 | Light/dark theme toggle | ✅ |
 | Docker & Kubernetes deployment | ✅ |
-| Google OAuth login | 🔜 Planned |
+| Google OAuth login | ✅ |
 
 ---
 
@@ -54,7 +54,7 @@ A web application for organizing board game nights with a group of 8–12 player
 | Manual fallback for unassigned players | ✅ |
 | Home → Vote redirect (entry page) | ✅ |
 | Light/dark theme toggle | ✅ |
-| Google OAuth login | 🔜 Planned |
+| Google OAuth login | ✅ |
 
 ---
 
@@ -91,14 +91,14 @@ A web application for organizing board game nights with a group of 8–12 player
 - **XLSX import** — bulk import games from xlsx (BGG format, multi-sheet)
 - **Physical tables** — define real tables (e.g. 2×6, 2×4 seats) and assign games
 - **Theme toggle** — light/dark mode
-- **Google OAuth login** — sign in with Google for secure voting *(planned)*
+- **Google OAuth login** — sign in with Google to store votes by account; view and edit your votes easily
 
 ---
 
 ## 📖 Full Flow: How to Use
 
 1. **Entry** — Opening the app redirects you to the **Vote** page.
-2. **Vote** — Enter your name, pick your top 3 games (1st, 2nd, 3rd choice), and submit. You can change your vote later; resubmitting overwrites your previous choices.
+2. **Vote** — Log in with Google (or enter your name if OAuth isn't configured), pick your top 3 games (1st, 2nd, 3rd choice), and submit. Your votes are stored with your account. Change and resubmit anytime to update.
 3. **Add games** — Admins add games manually (**➕ Add Game**) or import from XLSX (**⚙️ Admin**).
 4. **View catalog** — **📋 Current Games** shows all games and lets you edit or delete them.
 5. **Run algorithms** — In **⚙️ Admin**, click **Calculate Scores & Select Games** to pick which games will run based on votes, then **Run Player Assignment** to assign players to tables.
@@ -173,6 +173,8 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 | ------------------- | -------------------------- | ------------------------------------------ |
 | `id`                | `SERIAL PRIMARY KEY`       | Unique user ID                             |
 | `name`              | `VARCHAR(255) NOT NULL`    | User's display name                        |
+| `google_id`         | `VARCHAR(255) UNIQUE`      | OAuth subject ID (nullable for legacy)     |
+| `email`             | `VARCHAR(255)`             | User email from OAuth                       |
 | `submitted_at`      | `TIMESTAMP`                | When the user submitted preferences        |
 | `assigned_table_id` | `INTEGER REFERENCES table_instances(id)` | Which table the user is assigned to |
 
@@ -290,6 +292,85 @@ alembic upgrade head
 # Run the app (Home redirects to Vote)
 streamlit run Home.py
 ```
+
+### Google OAuth (optional)
+
+To enable "Log in with Google" for storing votes by account:
+
+#### 1. Google Cloud Console setup
+
+Go to [Google Auth Platform](https://console.cloud.google.com/auth/overview) and select your project.
+
+**a) OAuth consent screen (first-time only)**
+
+- Left menu → **OAuth consent screen**
+- User type: **External** (for anyone with a Google account) or **Internal** (for your org only)
+- Click **Create**
+
+  *App information:*
+  - App name: e.g. `Board Game Night Planner`
+  - User support email: your email
+  - Developer contact: your email
+
+  *Scopes:*
+  - Click **Add or remove scopes**
+  - Add `openid`, `.../auth/userinfo.email`, and `.../auth/userinfo.profile` (minimal for sign-in)
+  - Save
+
+  *Test users (if app is in "Testing"):*
+  - Under **Test users**, click **Add users**
+  - Add the Google accounts that will log in (e.g. your own). Only these accounts can log in until the app is verified/published.
+  - Until verified, apps in Testing mode are limited to 100 logins with sensitive scopes.
+
+**b) Create OAuth client (if you haven’t already)**
+
+- Left menu → **Credentials** (or **Clients**)
+- **Create Credentials** → **OAuth client ID**
+- Application type: **Web application**
+- Name: e.g. `Board Game Night`
+
+- Under **Authorized redirect URIs**, click **Add URI** and add:
+  - Local: `http://localhost:8501/oauth2callback`
+  - Production (if applicable): `https://your-domain.com/oauth2callback`
+
+- Click **Create**. Copy the **Client ID** and **Client secret** and store them securely — the secret is only shown once.
+
+#### 2. Configure the app
+
+Copy the example secrets file and edit it:
+
+```bash
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+```
+
+Edit `.streamlit/secrets.toml`:
+
+```toml
+[auth]
+redirect_uri = "http://localhost:8501/oauth2callback"
+cookie_secret = "paste_a_long_random_string_here"   # e.g. run: openssl rand -hex 32
+client_id = "YOUR_CLIENT_ID.apps.googleusercontent.com"
+client_secret = "YOUR_CLIENT_SECRET"
+server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
+```
+
+- `client_id` / `client_secret`: from the Google Cloud Console
+- `cookie_secret`: generate with `openssl rand -hex 32`
+- `redirect_uri`: must exactly match one of the URIs in the Google Console (including port and path)
+
+> **Security:** Never commit `.streamlit/secrets.toml` to version control — it is listed in `.gitignore`.
+
+#### 3. Restart the app
+
+After saving `secrets.toml`, restart the app. The Vote page will show **Log in with Google**. Without OAuth config, the app falls back to name-based voting.
+
+#### Troubleshooting
+
+| Error | Fix |
+|-------|-----|
+| "redirect_uri_mismatch" | Make sure the URI in `secrets.toml` exactly matches one in Google Console → Credentials → Your OAuth client → Authorized redirect URIs |
+| "Access blocked: This app's request is invalid" | Add your Google account as a Test user in OAuth consent screen → Test users |
+| "100 sensitive scope logins" limit | Use Test users in Testing mode, or complete app verification for production use |
 
 ### Build & Push (for Kubernetes / registry)
 

@@ -27,7 +27,7 @@ if config.config_file_name is not None:
 
 # Import models so Alembic can detect them
 from db.database import Base
-from db.models import Game, TableInstance, User, Preference
+from db.models import Game, Table, TableInstance, User, Preference
 
 target_metadata = Base.metadata
 

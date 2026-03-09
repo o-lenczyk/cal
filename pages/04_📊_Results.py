@@ -1,14 +1,17 @@
 import streamlit as st
 import pandas as pd
 
+from auth import is_oauth_configured, is_logged_in, get_oauth_user, render_logout_button
 from db.database import get_db
 from db.models import Game, User, Preference, TableInstance, Table
+from db.user_helpers import get_user_by_google_id
 from logic.scoring import calculate_scores
-from logic.assignment import get_available_tables
+from logic.assignment import get_available_tables, manually_assign_player
 from ui.theme_toggle import render_theme_toggle
 
 st.set_page_config(page_title="Results", page_icon="📊", layout="wide")
 render_theme_toggle()
+render_logout_button()
 st.title("📊 Results & Assignments")
 st.markdown("---")
 
@@ -112,27 +115,46 @@ if unassigned_with_votes:
     available = get_available_tables(session)
 
     if available:
-        # Select user
-        unassigned_names = [u.name for u in unassigned_with_votes]
-        selected_user_name = st.selectbox("Select your name:", options=[""] + unassigned_names)
+        # When OAuth is enabled and user is logged in, auto-detect if they're unassigned
+        current_user_for_assign = None
+        if is_oauth_configured() and is_logged_in():
+            oauth = get_oauth_user()
+            if oauth:
+                u = get_user_by_google_id(session, oauth["google_id"])
+                if u and u.assigned_table_id is None:
+                    pref_count = session.query(Preference).filter(Preference.user_id == u.id).count()
+                    if pref_count > 0:
+                        current_user_for_assign = u
 
-        # Select table
+        if current_user_for_assign:
+            st.info(f"**{current_user_for_assign.name}** — select a table to assign yourself:")
+        else:
+            current_user_for_assign = None
+
         table_options = [
             f"{t['game'].title} — {t['table'].table.name} ({t['current_count']}/{min(t['table'].table.capacity, t['game'].max_players)}, {t['open_seats']} open)"
             for t in available
         ]
         selected_table_label = st.selectbox("Select a table:", options=[""] + table_options)
 
-        if st.button("✅ Assign Me", use_container_width=True):
-            if not selected_user_name or not selected_table_label:
-                st.error("Please select both your name and a table.")
-            else:
-                table_idx = table_options.index(selected_table_label)
-                table_info = available[table_idx]
+        if not current_user_for_assign:
+            unassigned_names = [u.name for u in unassigned_with_votes]
+            selected_user_name = st.selectbox("Select your name:", options=[""] + unassigned_names)
+        else:
+            selected_user_name = current_user_for_assign.name
 
-                user = session.query(User).filter(User.name == selected_user_name).first()
-                if user:
-                    from logic.assignment import manually_assign_player
+        if st.button("✅ Assign Me", use_container_width=True):
+            if not selected_table_label:
+                st.error("Please select a table.")
+            elif not current_user_for_assign and not selected_user_name:
+                st.error("Please select your name.")
+            else:
+                user = current_user_for_assign or session.query(User).filter(User.name == selected_user_name).first()
+                if not user:
+                    st.error("User not found.")
+                else:
+                    table_idx = table_options.index(selected_table_label)
+                    table_info = available[table_idx]
                     success = manually_assign_player(session, user.id, table_info["table"].id)
                     if success:
                         st.success(f"✅ {user.name} assigned to {table_info['game'].title} — {table_info['table'].table.name}!")
