@@ -2,7 +2,7 @@
 
 A web application for organizing board game nights with a group of 8–12 players. Users submit their top three game preferences, the system identifies the most popular titles, and automatically assigns players to physical tables — with a manual fallback for anyone who can't be placed.
 
-**Implemented:** Vote, Add Game, Current Games (view/edit/delete), Results, Admin (Import XLSX, algorithms, physical tables), Help, light/dark theme, **Google OAuth login**, **Polish & English** (admin selects language). Entry redirects to Vote. **Planned:** Google Sheets import.
+**Implemented:** Vote, Add Game, Current Games (view/edit/delete), Results, Admin (Import XLSX, algorithms, physical tables, next meeting date), Help, light/dark theme (persists), **Google OAuth login**, **Vote without logging in** (guest option when OAuth enabled), **Meeting-based votes** (per date), **Polish & English** (admin selects language), **User Settings** (change display name). Entry redirects to Vote. **Planned:** Google Sheets import.
 
 ---
 
@@ -36,26 +36,13 @@ A web application for organizing board game nights with a group of 8–12 player
 | Run Player Assignment (first-come, first-served) | ✅ |
 | Manual table pick for unassigned players | ✅ |
 | Vote as entry page (Home redirects) | ✅ |
-| Light/dark theme toggle | ✅ |
+| Light/dark theme toggle (persists in URL/DB) | ✅ |
 | Docker & Kubernetes deployment | ✅ |
 | Google OAuth login | ✅ |
+| Vote without logging in (guest option) | ✅ |
+| Meeting-based votes (admin sets date per meeting) | ✅ |
 | Polish & English (admin language) | ✅ |
-
----
-
-## ✅ What's Implemented
-
-| Feature | Status |
-|---------|--------|
-| Weighted voting (top 3 games) | ✅ |
-| XLSX import (BGG, Kocie-gierce format) | ✅ |
-| Physical tables (configurable seats) | ✅ |
-| Calculate scores & select games | ✅ |
-| Automatic player assignment (first-come, first-served) | ✅ |
-| Manual fallback for unassigned players | ✅ |
-| Home → Vote redirect (entry page) | ✅ |
-| Light/dark theme toggle | ✅ |
-| Google OAuth login | ✅ |
+| User Settings (change display name) | ✅ |
 
 ---
 
@@ -91,8 +78,10 @@ A web application for organizing board game nights with a group of 8–12 player
 - **Fallback mechanism** — unassigned players manually pick from tables with open seats
 - **XLSX import** — bulk import games from xlsx (BGG format, multi-sheet)
 - **Physical tables** — define real tables (e.g. 2×6, 2×4 seats) and assign games
-- **Theme toggle** — light/dark mode
+- **Theme toggle** — light/dark mode; persists in URL and DB
 - **Google OAuth login** — sign in with Google to store votes by account; view and edit your votes easily
+- **Vote without logging in** — when OAuth is enabled, users can choose to vote as guest (enter name only)
+- **Meeting-based votes** — admin sets the next meeting date (Tuesdays); votes are scoped per meeting
 - **Polish & English** — admin selects app language in Admin dashboard
 
 ---
@@ -100,7 +89,7 @@ A web application for organizing board game nights with a group of 8–12 player
 ## 📖 Full Flow: How to Use
 
 1. **Entry** — Opening the app redirects you to the **Vote** page.
-2. **Vote** — Log in with Google (or enter your name if OAuth isn't configured), pick your top 3 games (1st, 2nd, 3rd choice), and submit. Your votes are stored with your account. Change and resubmit anytime to update.
+2. **Vote** — Log in with Google (or choose "Vote without logging in" to enter your name only, or enter your name if OAuth isn't configured). Pick your top 3 games (1st, 2nd, 3rd choice) and submit. Your votes are stored for the current meeting date. Change and resubmit anytime to update (requires login).
 3. **Add games** — Admins add games manually (**➕ Add Game**) or import from XLSX (**⚙️ Admin**).
 4. **View catalog** — **📋 Current Games** shows all games and lets you edit or delete them.
 5. **Run algorithms** — In **⚙️ Admin**, click **Calculate Scores & Select Games** to pick which games will run based on votes, then **Run Player Assignment** to assign players to tables.
@@ -154,12 +143,13 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 | **➕ Add Game**   | Add a new game manually (title, min/max players).                             |
 | **📋 Current Games** | View all games in a table; edit or delete games.                         |
 | **📊 Results**    | View game scores, table assignments, and who has voted. Unassigned players pick a table manually. |
-| **⚙️ Admin**      | Set app language (English/Polish), import from XLSX, run algorithms, manage physical tables, assign games to tables, overview metrics. |
+| **⚙️ Admin**      | Set next meeting date, app language (English/Polish), import from XLSX, run algorithms, manage physical tables, assign games to tables, overview metrics. |
 | **❓ Help**       | How the app works.                                                          |
 | **👤 User Settings** | Change your display name (OAuth only).                                      |
 
 | Admin Feature           | Description                                                                 |
 | ----------------------- | --------------------------------------------------------------------------- |
+| **Next meeting date**   | Set the date of the next game night (default: next Tuesday). Votes are scoped per meeting. |
 | **Import from XLSX**    | Upload xlsx (BGG ID, name, player count). Supports multi-sheet, Kocie-gierce format. |
 | **Physical tables**     | Add/edit tables (name, capacity). Assign selected games to each table.       |
 | **Calculate Scores**   | Select games by weighted votes; auto-assign them to physical tables.        |
@@ -176,10 +166,13 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 | ------------------- | -------------------------- | ------------------------------------------ |
 | `id`                | `SERIAL PRIMARY KEY`       | Unique user ID                             |
 | `name`              | `VARCHAR(255) NOT NULL`    | User's display name                        |
-| `google_id`         | `VARCHAR(255) UNIQUE`      | OAuth subject ID (nullable for legacy)     |
+| `google_id`         | `VARCHAR(255)`             | OAuth subject ID (nullable for guests)     |
 | `email`             | `VARCHAR(255)`             | User email from OAuth                       |
+| `meeting_date`      | `DATE NOT NULL`            | Which meeting this vote is for             |
 | `submitted_at`      | `TIMESTAMP`                | When the user submitted preferences        |
 | `assigned_table_id` | `INTEGER REFERENCES table_instances(id)` | Which table the user is assigned to |
+
+> Unique constraint: `(google_id, meeting_date)` — one vote per Google account per meeting. Guests have `google_id = NULL`.
 
 ### `games`
 
@@ -187,7 +180,6 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 | -------------- | ----------------------- | ---------------------------------------- |
 | `id`           | `SERIAL PRIMARY KEY`    | Unique game ID                           |
 | `bgg_id`       | `INTEGER` (nullable)    | BoardGameGeek ID (optional)              |
-| `bgg_id`       | `INTEGER`               | BoardGameGeek ID (optional)              |
 | `title`        | `VARCHAR(255) NOT NULL` | Name of the board game                   |
 | `min_players`  | `INTEGER NOT NULL`      | Minimum players required                 |
 | `max_players`  | `INTEGER NOT NULL`      | Maximum players allowed                  |
@@ -225,8 +217,8 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `key`  | `VARCHAR(100) PRIMARY KEY` | Setting key (e.g. `language`) |
-| `value`| `VARCHAR(500) NOT NULL`   | Setting value (e.g. `en`, `pl`) |
+| `key`  | `VARCHAR(100) PRIMARY KEY` | Setting key (e.g. `language`, `next_meeting_date`) |
+| `value`| `VARCHAR(500) NOT NULL`   | Setting value (e.g. `en`, `pl`, `2026-03-10`) |
 
 ### Entity Relationships
 
@@ -372,7 +364,7 @@ server_metadata_url = "https://accounts.google.com/.well-known/openid-configurat
 
 #### 3. Restart the app
 
-After saving `secrets.toml`, restart the app. The Vote page will show **Log in with Google**. Without OAuth config, the app falls back to name-based voting.
+After saving `secrets.toml`, restart the app. The Vote page will show **Log in with Google** and **Vote without logging in** (for guests who prefer not to sign in). Without OAuth config, the app falls back to name-based voting.
 
 #### Troubleshooting
 

@@ -9,23 +9,32 @@ This document outlines the full development roadmap, from a local Python MVP to 
 ```
 cal/
 ├── Home.py                   # Entry point (redirects to Vote)
+├── auth.py                   # OAuth helpers (login gate, logout, guest option)
+├── meeting_date.py           # Next meeting date (app_settings)
 ├── pages/                    # Streamlit multi-page app
 │   ├── 01_🗳️_Vote.py        # User voting page (entry)
 │   ├── 02_➕_Add_Game.py     # Add game manually
 │   ├── 03_📋_Current_Games.py # View/edit/delete games
 │   ├── 04_📊_Results.py     # Scores & table assignments
-│   ├── 05_⚙️_Admin.py       # Import XLSX, algorithms, physical tables
-│   └── 06_❓_Help.py        # How it works
+│   ├── 05_⚙️_Admin.py       # Import XLSX, algorithms, physical tables, meeting date
+│   ├── 06_❓_Help.py        # How it works
+│   └── 07_👤_User_Settings.py # Change display name (OAuth)
 ├── db/
 │   ├── database.py           # Database connection & session
 │   ├── models.py             # SQLAlchemy models
+│   ├── user_helpers.py       # User lookup (OAuth, name, meeting_date)
 │   ├── import_games.py       # XLSX import logic
 │   └── seed.py               # Optional: seed data for testing
+├── i18n/                     # Translations (EN, PL)
+│   ├── __init__.py           # t(), get_language, set_language
+│   └── translations.py       # Translation strings
 ├── logic/
 │   ├── scoring.py            # Game scoring & selection
 │   └── assignment.py         # Player-to-table assignment
 ├── ui/
-│   └── theme_toggle.py       # Light/dark theme
+│   ├── theme_toggle.py       # Light/dark theme
+│   ├── theme.py              # Theme persistence (URL, DB)
+│   └── sidebar_nav.py        # Custom nav with translated labels
 ├── alembic/                  # Database migrations
 ├── k8s/                      # Kubernetes manifests
 ├── docker-compose.yml
@@ -81,7 +90,7 @@ cal/
 ### 1.3 — Database Models & Migrations
 
 - [x] Define SQLAlchemy models in `db/models.py`:
-  - `User` — id, name, submitted_at, assigned_table_id
+  - `User` — id, name, google_id, email, meeting_date, submitted_at, assigned_table_id
   - `Game` — id, bgg_id, title, min_players, max_players, is_selected
   - `Table` — id, name, capacity, sort_order (physical tables)
   - `TableInstance` — id, table_id, game_id (links physical table to game)
@@ -257,6 +266,24 @@ These are planned features to be implemented after the core app is stable.
 - [x] **DB migration** — add `google_id`, `email` to `User`; drop unique on `name`
 - [x] **My Votes** section — expandable view of current user's votes, easy edit flow
 - [x] **Fallback** — legacy name-based voting when OAuth not configured
+- [x] **Vote without logging in** — guest option when OAuth is configured; users can skip login and enter name only
+- [x] **User Settings** — page to change display name (OAuth only)
+
+### 4.3b — Meeting-Based Votes ✅
+- [x] Admin sets next meeting date (default: next Tuesday) in Admin dashboard
+- [x] Votes scoped per meeting date; User has `meeting_date`; unique `(google_id, meeting_date)`
+- [x] Scoring, assignment, overview all filter by current meeting date
+- [x] `app_settings.next_meeting_date` stores the active meeting date
+
+### 4.3c — i18n (Polish & English) ✅
+- [x] Admin selects app language in Admin dashboard
+- [x] Translated page labels, form fields, buttons
+- [x] `i18n/translations.py` with EN/PL strings
+
+### 4.3d — Theme Persistence ✅
+- [x] Light/dark theme persists in URL query params
+- [x] OAuth users: theme stored in DB per user
+- [x] Theme survives page navigation and reload
 
 ### 4.4 — Event History
 - [ ] Support multiple game night events
@@ -276,7 +303,7 @@ These are planned features to be implemented after the core app is stable.
 | 1. Local Python App | ✅ Done |
 | 2. Dockerize | ✅ Done |
 | 3. Kubernetes | ✅ Done |
-| 4. Enhancements | ⏳ Waiting |
+| 4. Enhancements | ✅ OAuth, guest voting, meeting dates, i18n, theme persistence done; Google Sheets planned |
 
 ---
 
