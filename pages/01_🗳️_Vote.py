@@ -129,9 +129,13 @@ def _set_voter_param(name: str) -> None:
 with st.form("vote_form"):
     st.subheader("Your Info")
     if use_oauth and is_logged_in():
-        oauth = get_oauth_user()
-        st.text_input("Your Name", value=oauth["name"] if oauth else "", disabled=True)
-        user_name = (oauth["name"] if oauth else "").strip()
+        st.text_input(
+            "Your Name",
+            value=default_name,
+            disabled=True,
+            help="Change your display name in 👤 User Settings",
+        )
+        user_name = default_name.strip()
     else:
         user_name = st.text_input(
             "Your Name", placeholder="Enter your name...", value=default_name
@@ -192,7 +196,7 @@ if submitted:
                         session,
                         google_id=oauth["google_id"],
                         email=oauth["email"],
-                        name=oauth["name"],
+                        name=user_name or (oauth["name"] if oauth else ""),
                     )
             else:
                 existing_user = get_user_by_name(session, user_name.strip())

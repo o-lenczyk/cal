@@ -24,11 +24,11 @@ def get_or_create_user_by_oauth(
 ) -> User:
     """
     Get existing user by google_id, or create a new one.
-    Updates name/email if user exists (in case they changed in Google).
+    Preserves existing user's display name (set in User Settings); only updates email.
+    For new users, uses name from OAuth.
     """
     user = get_user_by_google_id(session, google_id)
     if user:
-        user.name = name
         user.email = email or user.email
         return user
     user = User(google_id=google_id, email=email or None, name=name)

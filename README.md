@@ -154,6 +154,7 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 | **📊 Results**    | View game scores, table assignments, and who has voted. Unassigned players pick a table manually. |
 | **⚙️ Admin**      | Import from XLSX, run algorithms (Calculate Scores, Player Assignment, Reset), manage physical tables, assign games to tables, overview metrics. |
 | **❓ Help**       | How the app works.                                                          |
+| **👤 User Settings** | Change your display name (OAuth only).                                      |
 
 | Admin Feature           | Description                                                                 |
 | ----------------------- | --------------------------------------------------------------------------- |
