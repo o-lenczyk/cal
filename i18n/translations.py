@@ -2,6 +2,14 @@
 
 TRANSLATIONS = {
     "en": {
+        # Sidebar navigation
+        "nav_vote": "Vote",
+        "nav_add_game": "Add Game",
+        "nav_current_games": "Current Games",
+        "nav_results": "Results",
+        "nav_admin": "Admin",
+        "nav_help": "Help",
+        "nav_user_settings": "User Settings",
         # Vote page
         "vote_title": "🗳️ Vote for Your Games",
         "vote_subtitle": "Pick **1 to 3** board games for game night (in order of preference).",
@@ -167,6 +175,14 @@ TRANSLATIONS = {
         "auth_logout_help": "Sign out of your Google account",
     },
     "pl": {
+        # Sidebar navigation
+        "nav_vote": "Głosuj",
+        "nav_add_game": "Dodaj grę",
+        "nav_current_games": "Aktualne gry",
+        "nav_results": "Wyniki",
+        "nav_admin": "Admin",
+        "nav_help": "Pomoc",
+        "nav_user_settings": "Ustawienia",
         # Vote page
         "vote_title": "🗳️ Głosuj na gry",
         "vote_subtitle": "Wybierz **1–3** gry planszowe na wieczór gier (w kolejności preferencji).",

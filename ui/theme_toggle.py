@@ -1,9 +1,12 @@
-"""Light/dark theme toggle for Streamlit sidebar."""
+"""Light/dark theme toggle and sidebar navigation for Streamlit."""
 import streamlit as st
+
+from ui.sidebar_nav import render_sidebar_nav
 
 
 def render_theme_toggle():
-    """Render a theme toggle button in the sidebar. Uses st._config (undocumented API)."""
+    """Render custom nav (translated), then theme toggle in the sidebar."""
+    render_sidebar_nav()
     if "theme" not in st.session_state:
         st.session_state.theme = "light"
 
