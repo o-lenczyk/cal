@@ -30,3 +30,6 @@ def render_theme_toggle():
     if st.sidebar.button(label, key="theme_toggle", help="Switch theme"):
         toggle()
         st.rerun()
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("[GitHub](https://github.com/o-lenczyk/cal)")

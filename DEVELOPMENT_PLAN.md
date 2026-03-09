@@ -8,27 +8,28 @@ This document outlines the full development roadmap, from a local Python MVP to 
 
 ```
 cal/
-├── vote.py                   # Streamlit entry point (Vote page)
+├── Home.py                   # Entry point (redirects to Vote)
 ├── pages/                    # Streamlit multi-page app
-│   ├── 01_vote.py            # User voting page
-│   ├── 02_results.py         # View scores & assignments
-│   └── 03_admin.py           # Admin dashboard
+│   ├── 01_🗳️_Vote.py        # User voting page (entry)
+│   ├── 02_➕_Add_Game.py     # Add game manually
+│   ├── 03_📋_Current_Games.py # View/edit/delete games
+│   ├── 04_📊_Results.py     # Scores & table assignments
+│   ├── 05_⚙️_Admin.py       # Import XLSX, algorithms, physical tables
+│   └── 06_❓_Help.py        # How it works
 ├── db/
 │   ├── database.py           # Database connection & session
 │   ├── models.py             # SQLAlchemy models
+│   ├── import_games.py       # XLSX import logic
 │   └── seed.py               # Optional: seed data for testing
 ├── logic/
-│   ├── scoring.py            # Game scoring algorithm
-│   └── assignment.py         # Player-to-table assignment algorithm
+│   ├── scoring.py            # Game scoring & selection
+│   └── assignment.py         # Player-to-table assignment
+├── ui/
+│   └── theme_toggle.py       # Light/dark theme
 ├── alembic/                  # Database migrations
-│   └── versions/
-├── alembic.ini
-├── requirements.txt
-├── .env                      # Database URL, secrets (not committed)
-├── .env.example              # Template for .env
-├── docker-compose.yml        # PostgreSQL for local dev
-├── Dockerfile                # App container (Milestone 2)
-├── k8s/                      # Kubernetes manifests (Milestone 3)
+├── k8s/                      # Kubernetes manifests
+├── docker-compose.yml
+├── Dockerfile
 ├── README.md
 ├── DEVELOPMENT_PLAN.md
 └── LICENSE
@@ -81,24 +82,23 @@ cal/
 
 - [x] Define SQLAlchemy models in `db/models.py`:
   - `User` — id, name, submitted_at, assigned_table_id
-  - `Game` — id, title, min_players, max_players, is_selected
-  - `TableInstance` — id, game_id, table_number
+  - `Game` — id, bgg_id, title, min_players, max_players, is_selected
+  - `Table` — id, name, capacity, sort_order (physical tables)
+  - `TableInstance` — id, table_id, game_id (links physical table to game)
   - `Preference` — id, user_id, game_id, rank
 - [x] Set up Alembic for migrations (`alembic init alembic`)
 - [x] Generate and run initial migration
 - [x] Create `db/database.py` with engine, session factory, and connection helper
 
-### 1.4 — Admin: Game Management
+### 1.4 — Game Management (split across pages)
 
-- [x] Admin page (`pages/03_admin.py`) with:
-  - Add a new game (title, min_players, max_players)
-  - Edit existing game details
-  - Delete a game
-  - View all games in a table
+- [x] **Add Game** (`pages/02_➕_Add_Game.py`) — add new game (title, min/max players)
+- [x] **Current Games** (`pages/03_📋_Current_Games.py`) — view all games, edit, delete
+- [x] **Import from XLSX** — in Admin; supports BGG format, multi-sheet, Kocie-gierce
 
 ### 1.5 — User Voting Page
 
-- [x] Voting page (`pages/01_vote.py`) with:
+- [x] Voting page (`pages/01_🗳️_Vote.py`) with:
   - User enters their name
   - Selects 1st, 2nd, and 3rd choice from dropdown (no duplicates allowed)
   - Submit button stores preferences with timestamp
@@ -111,7 +111,7 @@ cal/
   - Calculate weighted score per game: `3×n1 + 2×n2 + 1×n3`
   - Determine which games meet the threshold and min_players requirement
   - Mark qualifying games as `is_selected = True`
-- [x] Display scores on results page (`pages/02_results.py`)
+- [x] Display scores on results page (`pages/04_📊_Results.py`)
 
 ### 1.7 — Assignment Algorithm
 
@@ -124,13 +124,12 @@ cal/
 - [x] Admin triggers assignment from the admin page
 - [x] Display assignments on results page
 
-### 1.8 — Admin: Table Management
+### 1.8 — Physical Tables & Game Assignment
 
-- [x] On admin page, for each selected game:
-  - Show current number of tables
-  - **➕ Add table** button — creates a new `TableInstance`
-  - **➖ Remove table** button — removes the last empty table instance
-  - Display current player count per table
+- [x] **Physical tables** — Admin defines tables (name, capacity, e.g. 2×6, 2×4 seats)
+- [x] **Calculate Scores & Select Games** — selects games by votes, auto-creates `TableInstance` per physical table
+- [x] **Assign Games to Tables** — admin assigns selected game to each physical table
+- [x] Edit/delete physical tables; display player count per table
 
 ### 1.9 — Fallback UI for Unassigned Players
 
@@ -164,7 +163,7 @@ cal/
   RUN pip install --no-cache-dir -r requirements.txt
   COPY . .
   EXPOSE 8501
-  CMD ["streamlit", "run", "vote.py", "--server.address=0.0.0.0"]
+  CMD ["sh", "-c", "alembic upgrade head && exec streamlit run Home.py --server.address=0.0.0.0"]
   ```
 
 ### 2.2 — Docker Compose (Full Stack)
@@ -249,10 +248,15 @@ These are planned features to be implemented after the core app is stable.
 - [ ] Better mobile-first responsive design
 - [ ] User session management
 
-### 4.3 — User Authentication
-- [ ] Simple login (name-based or password-based)
-- [ ] Admin role vs regular user role
-- [ ] Session persistence
+### 4.3 — Google OAuth Login
+- [ ] **Streamlit native auth** — use `st.login()` / `st.logout()` (Streamlit 1.42+)
+- [ ] Add `Authlib>=1.3.2` to requirements
+- [ ] Configure `.streamlit/secrets.toml` or env vars:
+  - `[auth]` section: `redirect_uri`, `cookie_secret`, `client_id`, `client_secret`, `server_metadata_url`
+- [ ] **Google Cloud setup** — create OAuth 2.0 Web client, consent screen, redirect URI
+- [ ] Replace "Your Name" text input on Vote page with login gate; use `st.user.name` or `st.user.email` as voter identity
+- [ ] **Optional DB migration** — add `google_id` and/or `email` to `User` for stable identity
+- [ ] **Deployment** — set `redirect_uri` to production URL in Google Console and secrets
 
 ### 4.4 — Event History
 - [ ] Support multiple game night events

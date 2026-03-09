@@ -1,11 +1,14 @@
 # 🎲 Board Game Night Planner
 
-A web application for organizing board game nights with a group of 8–12 players. Users submit their top three game preferences, the system identifies the most popular titles, and automatically assigns players to tables — with a manual fallback for anyone who can't be placed.
+A web application for organizing board game nights with a group of 8–12 players. Users submit their top three game preferences, the system identifies the most popular titles, and automatically assigns players to physical tables — with a manual fallback for anyone who can't be placed.
+
+**Implemented:** Vote, Add Game, Current Games (view/edit/delete), Results, Admin (Import XLSX, algorithms, physical tables), Help, light/dark theme. Entry redirects to Vote. **Planned:** Google OAuth login, Google Sheets import.
 
 ---
 
 ## 📋 Table of Contents
 
+- [Full Flow: How to Use](#-full-flow-how-to-use)
 - [Screenshots](#-screenshots)
 - [Tech Stack](#-tech-stack)
 - [Features](#-features)
@@ -13,9 +16,45 @@ A web application for organizing board game nights with a group of 8–12 player
   - [Phase 1: Scoring & Game Selection](#phase-1-scoring--game-selection)
   - [Phase 2: Player Assignment](#phase-2-player-assignment)
   - [Phase 3: Fallback for Unassigned Players](#phase-3-fallback-for-unassigned-players)
+- [Pages Overview](#-pages-overview)
 - [Admin Features](#-admin-features)
 - [Database Schema (PostgreSQL)](#-database-schema-postgresql)
-- [Google Sheets Integration (Planned)](#-google-sheets-integration-planned)
+- [Getting Started](#-getting-started)
+
+---
+
+## ✅ What's Implemented
+
+| Feature | Status |
+|---------|--------|
+| Weighted voting (top 3 games) | ✅ |
+| Add game manually | ✅ |
+| Import games from XLSX (Admin) | ✅ |
+| Current Games page (view/edit/delete) | ✅ |
+| Physical tables (name, capacity) | ✅ |
+| Calculate Scores & Select Games | ✅ |
+| Run Player Assignment (first-come, first-served) | ✅ |
+| Manual table pick for unassigned players | ✅ |
+| Vote as entry page (Home redirects) | ✅ |
+| Light/dark theme toggle | ✅ |
+| Docker & Kubernetes deployment | ✅ |
+| Google OAuth login | 🔜 Planned |
+
+---
+
+## ✅ What's Implemented
+
+| Feature | Status |
+|---------|--------|
+| Weighted voting (top 3 games) | ✅ |
+| XLSX import (BGG, Kocie-gierce format) | ✅ |
+| Physical tables (configurable seats) | ✅ |
+| Calculate scores & select games | ✅ |
+| Automatic player assignment (first-come, first-served) | ✅ |
+| Manual fallback for unassigned players | ✅ |
+| Home → Vote redirect (entry page) | ✅ |
+| Light/dark theme toggle | ✅ |
+| Google OAuth login | 🔜 Planned |
 
 ---
 
@@ -49,11 +88,26 @@ A web application for organizing board game nights with a group of 8–12 player
 - **Multiple tables per game** — popular games can run on 2+ tables simultaneously
 - **Configurable player limits** — set min/max players per game
 - **Fallback mechanism** — unassigned players manually pick from tables with open seats
-- **Google Sheets import** — sync your game catalog from a Google Sheet *(planned)*
+- **XLSX import** — bulk import games from xlsx (BGG format, multi-sheet)
+- **Physical tables** — define real tables (e.g. 2×6, 2×4 seats) and assign games
+- **Theme toggle** — light/dark mode
+- **Google OAuth login** — sign in with Google for secure voting *(planned)*
 
 ---
 
-## ⚙ How It Works
+## 📖 Full Flow: How to Use
+
+1. **Entry** — Opening the app redirects you to the **Vote** page.
+2. **Vote** — Enter your name, pick your top 3 games (1st, 2nd, 3rd choice), and submit. You can change your vote later; resubmitting overwrites your previous choices.
+3. **Add games** — Admins add games manually (**➕ Add Game**) or import from XLSX (**⚙️ Admin**).
+4. **View catalog** — **📋 Current Games** shows all games and lets you edit or delete them.
+5. **Run algorithms** — In **⚙️ Admin**, click **Calculate Scores & Select Games** to pick which games will run based on votes, then **Run Player Assignment** to assign players to tables.
+6. **Physical tables** — Admins define tables (e.g. 2×6 seats, 2×4 seats) and assign selected games to each table.
+7. **Results** — **📊 Results** shows table assignments. Unassigned players can manually pick a table with open seats.
+
+---
+
+## ⚙ How It Works (Algorithms)
 
 ### Phase 1: Scoring & Game Selection
 
@@ -71,7 +125,7 @@ The total score for a game is calculated as:
 Score = 3 × (# of 1st-choice votes) + 2 × (# of 2nd-choice votes) + 1 × (# of 3rd-choice votes)
 ```
 
-Games that meet a minimum point threshold **and** have enough interested players to satisfy their `min_players` requirement are selected. Tables are then initialized for those games.
+Games that meet a minimum point threshold **and** have enough interested players to satisfy their `min_players` requirement are selected. The system creates **physical table** assignments (each physical table gets one selected game).
 
 ### Phase 2: Player Assignment
 
@@ -90,15 +144,24 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 
 ---
 
-## 🔧 Admin Features
+## 📄 Pages & Admin Features
 
-| Feature                        | Description                                                                 |
-| ------------------------------ | --------------------------------------------------------------------------- |
-| **Import from XLSX**           | Upload an xlsx file with BGG ID, name, and player count to populate games   |
-| **Adjust tables per game**     | Increase or decrease the number of tables running the same game             |
-| **Set max players**            | Configure the maximum number of players allowed at each game/table          |
-| **View assignments**           | See which players are assigned where, and who is still unassigned           |
-| **Trigger assignment**         | Run the automatic assignment algorithm after voting closes                  |
+| Page              | Description                                                                 |
+| ----------------- | --------------------------------------------------------------------------- |
+| **🗳️ Vote**       | Entry page. Submit your name and top 3 game choices.                         |
+| **➕ Add Game**   | Add a new game manually (title, min/max players).                             |
+| **📋 Current Games** | View all games in a table; edit or delete games.                         |
+| **📊 Results**    | View game scores, table assignments, and who has voted. Unassigned players pick a table manually. |
+| **⚙️ Admin**      | Import from XLSX, run algorithms (Calculate Scores, Player Assignment, Reset), manage physical tables, assign games to tables, overview metrics. |
+| **❓ Help**       | How the app works.                                                          |
+
+| Admin Feature           | Description                                                                 |
+| ----------------------- | --------------------------------------------------------------------------- |
+| **Import from XLSX**    | Upload xlsx (BGG ID, name, player count). Supports multi-sheet, Kocie-gierce format. |
+| **Physical tables**     | Add/edit tables (name, capacity). Assign selected games to each table.       |
+| **Calculate Scores**   | Select games by weighted votes; auto-assign them to physical tables.        |
+| **Run Player Assignment** | Assign players to tables (first-come, first-served by submission time). |
+| **Reset Assignments**   | Clear all player-to-table assignments.                                     |
 
 ---
 
@@ -118,20 +181,31 @@ If a user can't be placed at any of their three choices, they are flagged as **u
 | Column         | Type                    | Description                              |
 | -------------- | ----------------------- | ---------------------------------------- |
 | `id`           | `SERIAL PRIMARY KEY`    | Unique game ID                           |
+| `bgg_id`       | `INTEGER` (nullable)    | BoardGameGeek ID (optional)              |
+| `bgg_id`       | `INTEGER`               | BoardGameGeek ID (optional)              |
 | `title`        | `VARCHAR(255) NOT NULL` | Name of the board game                   |
 | `min_players`  | `INTEGER NOT NULL`      | Minimum players required                 |
 | `max_players`  | `INTEGER NOT NULL`      | Maximum players allowed                  |
 | `is_selected`  | `BOOLEAN DEFAULT FALSE` | Whether the game qualified for play      |
 
+### `tables` (physical tables)
+
+| Column       | Type                    | Description                    |
+| ------------ | ----------------------- | ------------------------------ |
+| `id`         | `SERIAL PRIMARY KEY`    | Unique table ID                |
+| `name`       | `VARCHAR(100) NOT NULL`  | Table name (e.g. "Table 1")    |
+| `capacity`   | `INTEGER NOT NULL`      | Seats (e.g. 4 or 6)            |
+| `sort_order` | `INTEGER NOT NULL`      | Display order                  |
+
 ### `table_instances`
 
-| Column         | Type                                  | Description                          |
-| -------------- | ------------------------------------- | ------------------------------------ |
-| `id`           | `SERIAL PRIMARY KEY`                  | Unique table instance ID             |
-| `game_id`      | `INTEGER REFERENCES games(id)`        | Which game is played at this table   |
-| `table_number` | `INTEGER NOT NULL`                    | Table number (1, 2, 3… per game)     |
+| Column    | Type                                  | Description                          |
+| --------- | ------------------------------------- | ------------------------------------ |
+| `id`      | `SERIAL PRIMARY KEY`                  | Unique table instance ID             |
+| `table_id`| `INTEGER REFERENCES tables(id)`       | Physical table                       |
+| `game_id` | `INTEGER REFERENCES games(id)`         | Which game is played at this table   |
 
-> A single game can have multiple `table_instances` — e.g., if Catan is very popular, the admin can create 2 or 3 Catan tables.
+> Each physical table has at most one game. A game can run on multiple physical tables (e.g. 2 Catan tables).
 
 ### `preferences`
 
@@ -150,6 +224,10 @@ users ──────────── preferences ────────�
   │  assigned to                  has many    │
   ▼                                           ▼
 table_instances ◄──────────────────────────────┘
+       │
+       │ links to
+       ▼
+    tables (physical)
 ```
 
 ---
@@ -209,7 +287,7 @@ cp .env.example .env
 # Run migrations
 alembic upgrade head
 
-# Run the app
+# Run the app (Home redirects to Vote)
 streamlit run Home.py
 ```
 
