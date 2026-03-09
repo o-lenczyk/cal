@@ -43,18 +43,25 @@ def get_oauth_user() -> dict | None:
     }
 
 
-def render_login_gate() -> bool:
+def render_login_gate(allow_guest: bool = False) -> bool:
     """
-    If OAuth is configured and user is not logged in, show login button and return False.
-    Otherwise return True (user can proceed).
+    If OAuth is configured and user is not logged in, show login (and optionally guest) buttons.
+    Returns False if user must stop. Returns True if user can proceed (logged in or chose guest).
     """
     if not is_oauth_configured():
         return True
     if is_logged_in():
         return True
+    if allow_guest and st.session_state.get("vote_as_guest"):
+        return True
     st.header(t("auth_login_title"))
     st.markdown(t("auth_login_desc"))
     st.button(t("auth_login_btn"), on_click=st.login, type="primary")
+    if allow_guest:
+        st.caption(t("auth_vote_as_guest_help"))
+        if st.button(t("auth_vote_as_guest")):
+            st.session_state.vote_as_guest = True
+            st.rerun()
     return False
 
 

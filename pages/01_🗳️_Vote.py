@@ -49,13 +49,45 @@ game_titles = [g.title for g in games]
 
 
 # --- OAuth vs Legacy: determine current user ---
+def _get_voter_param() -> str:
+    if st.session_state.get("voter_name"):
+        return st.session_state.voter_name
+    try:
+        v = st.query_params.get("voter")
+        if isinstance(v, list) and v:
+            return (v[0] or "").strip()
+        if isinstance(v, str):
+            return v.strip()
+    except Exception:
+        pass
+    return ""
+
+
+def _load_legacy_user(name: str):
+    """Load existing user by name for legacy/guest flow. Returns (user, default_choices)."""
+    existing = get_user_by_name(session, name.strip(), meeting_date)
+    if not existing:
+        return None, ["", "", ""]
+    prefs = (
+        session.query(Preference)
+        .filter(Preference.user_id == existing.id)
+        .order_by(Preference.rank)
+        .all()
+    )
+    choices = ["", "", ""]
+    for i, p in enumerate(prefs):
+        if i < 3 and p.game.title in game_map:
+            choices[i] = p.game.title
+    return existing, choices
+
+
 use_oauth = is_oauth_configured()
 current_user: User | None = None
 default_name = ""
 default_choices = ["", "", ""]
 
 if use_oauth:
-    if not render_login_gate():
+    if not render_login_gate(allow_guest=True):
         session.close()
         st.stop()
     oauth = get_oauth_user()
@@ -74,36 +106,18 @@ if use_oauth:
                     default_choices[i] = p.game.title
         else:
             default_name = oauth["name"]
+    elif st.session_state.get("vote_as_guest"):
+        saved_name = _get_voter_param()
+        if saved_name:
+            current_user, default_choices = _load_legacy_user(saved_name)
+            if current_user:
+                default_name = current_user.name
 else:
-    # Legacy: pre-fill from session or URL
-    def _get_voter_param() -> str:
-        if st.session_state.get("voter_name"):
-            return st.session_state.voter_name
-        try:
-            v = st.query_params.get("voter")
-            if isinstance(v, list) and v:
-                return (v[0] or "").strip()
-            if isinstance(v, str):
-                return v.strip()
-        except Exception:
-            pass
-        return ""
-
     saved_name = _get_voter_param()
     if saved_name:
-        existing = get_user_by_name(session, saved_name.strip(), meeting_date)
-        if existing:
-            current_user = existing
-            default_name = existing.name
-            prefs = (
-                session.query(Preference)
-                .filter(Preference.user_id == existing.id)
-                .order_by(Preference.rank)
-                .all()
-            )
-            for i, p in enumerate(prefs):
-                if i < 3 and p.game.title in game_map:
-                    default_choices[i] = p.game.title
+        current_user, default_choices = _load_legacy_user(saved_name)
+        if current_user:
+            default_name = current_user.name
 
 
 # --- My Votes section (when logged in / identified and has votes) ---
@@ -173,12 +187,10 @@ if submitted:
     errors = []
     choices = [c for c in [choice_1, choice_2, choice_3] if c]
 
-    if use_oauth:
-        if not user_name.strip():
-            errors.append(t("vote_err_login"))
-    else:
-        if not user_name.strip():
-            errors.append(t("vote_err_name"))
+    if use_oauth and is_logged_in():
+        pass  # name from OAuth
+    elif not user_name.strip():
+        errors.append(t("vote_err_name"))
 
     if len(choices) < 1:
         errors.append(t("vote_err_one_game"))
@@ -190,18 +202,15 @@ if submitted:
             st.error(f"❌ {err}")
     else:
         try:
-            if use_oauth:
-                oauth = get_oauth_user()
-                if not oauth:
-                    st.error(t("vote_err_session"))
-                else:
-                    user = get_or_create_user_by_oauth(
-                        session,
-                        google_id=oauth["google_id"],
-                        email=oauth["email"],
-                        name=user_name or (oauth["name"] if oauth else ""),
-                        meeting_date=meeting_date,
-                    )
+            oauth = get_oauth_user() if use_oauth else None
+            if use_oauth and oauth:
+                user = get_or_create_user_by_oauth(
+                    session,
+                    google_id=oauth["google_id"],
+                    email=oauth["email"],
+                    name=user_name or (oauth["name"] if oauth else ""),
+                    meeting_date=meeting_date,
+                )
             else:
                 existing_user = get_user_by_name(session, user_name.strip(), meeting_date)
                 if existing_user:
@@ -223,7 +232,7 @@ if submitted:
             user.submitted_at = func.now()
             session.commit()
 
-            if not use_oauth:
+            if not (use_oauth and oauth):
                 _set_voter_param(user_name.strip())
             st.success(t("vote_success", name=user.name))
             st.balloons()
